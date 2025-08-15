@@ -1,62 +1,76 @@
-'use client'
-
-import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
-import { useRouter } from 'next/navigation'
+// app/(auth)/login/page.tsx
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { app } from "@/lib/firebase"; // tu inicialización de Firebase
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    setError('')
-    setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
-      alert('Login correcto ✅')
-      router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+      const userDoc = await getDoc(doc(db, "users", uid));
+
+      if (userDoc.exists()) {
+        const role = userDoc.data().role;
+        console.log("🔥 ROLE DETECTADO:", role);
+
+        switch (role) {
+          case "admin":
+            router.push("/dashboard/admin");
+            break;
+          case "project_manager":
+            router.push("/dashboard/pm");
+            break;
+          case "technician":
+            router.push("/dashboard/technician");
+            break;
+          case "viewer":
+            router.push("/dashboard/viewer");
+            break;
+          default:
+            router.push("/");
+        }
+      } else {
+        alert("No se encontró el perfil del usuario.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error de login");
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm bg-white p-6 rounded shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Iniciar sesión</h1>
-
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Contraseña"
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          {loading ? 'Cargando...' : 'Entrar'}
-        </button>
-
-        {error && <p className="text-red-600 mt-4 text-sm">{error}</p>}
-      </div>
-    </div>
-  )
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <h1 className="text-3xl font-bold mb-4">Iniciar sesión</h1>
+      <input
+        type="email"
+        placeholder="Correo electrónico"
+        className="border p-2 mb-2 w-64"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Contraseña"
+        className="border p-2 mb-4 w-64"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button
+        onClick={handleLogin}
+        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        Entrar
+      </button>
+    </main>
+  );
 }
