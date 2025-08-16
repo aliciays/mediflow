@@ -15,6 +15,8 @@ export default function Header() {
   const pathname = usePathname();
   const auth = getAuth();
 
+  const isAuthed = !!user;
+
   // Nombre
   const displayName =
     (user as any)?.displayName ||
@@ -32,8 +34,8 @@ export default function Header() {
       : (user as any)?.role === 'technician' ? '/avatars/tech.jpg'
       : '/avatars/default.jpg');
 
-  // Nav links según rol
-  const nav = getNavByRole((user as any)?.role);
+  // Nav links según rol (solo si hay sesión)
+  const nav = isAuthed ? getNavByRole((user as any)?.role) : [];
 
   // Dropdown
   const [open, setOpen] = useState(false);
@@ -65,71 +67,87 @@ export default function Header() {
           <span className="text-sm font-semibold tracking-wide text-slate-900">MediFlow</span>
         </Link>
 
-        {/* Nav (desktop) */}
-        <nav className="hidden md:flex items-center gap-2">
-          {nav.map(({ href, label }) => {
-            const active = pathname?.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={clsx(
-                  'rounded-xl px-3 py-2 text-sm transition',
-                  active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
-                )}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Nav (desktop) solo si hay sesión */}
+        {isAuthed && (
+          <nav className="hidden md:flex items-center gap-2">
+            {nav.map(({ href, label }) => {
+              const active = pathname?.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={clsx(
+                    'rounded-xl px-3 py-2 text-sm transition',
+                    active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
-        {/* Perfil + dropdown */}
+        {/* Derecha */}
         <div className="relative" ref={ref}>
-          <button
-            onClick={() => setOpen(v => !v)}
-            className="flex items-center gap-3 rounded-2xl border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50"
-          >
-            <span className="hidden text-sm text-slate-700 sm:block">{displayName}</span>
-            <Image src={avatarSrc} alt={displayName} width={32} height={32} className="h-8 w-8 rounded-full ring-1 ring-slate-200 object-cover" />
-            <svg className={`h-4 w-4 text-slate-500 transition ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-              <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.11l3.71-3.88a.75.75 0 111.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" />
-            </svg>
-          </button>
-
-          {open && (
-            <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border bg-white shadow-lg">
-              <Link href="/settings" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>
-                Settings
-              </Link>
-              <button onClick={onLogout} className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
-                Cerrar sesión
+          {!isAuthed ? (
+            // 🔹 Si no hay sesión, botón de login
+            <Link
+              href="/login"
+              className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Iniciar sesión
+            </Link>
+          ) : (
+            <>
+              <button
+                onClick={() => setOpen(v => !v)}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50"
+              >
+                <span className="hidden text-sm text-slate-700 sm:block">{displayName}</span>
+                <Image src={avatarSrc} alt={displayName} width={32} height={32} className="h-8 w-8 rounded-full ring-1 ring-slate-200 object-cover" />
+                <svg className={`h-4 w-4 text-slate-500 transition ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.11l3.71-3.88a.75.75 0 111.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" />
+                </svg>
               </button>
-            </div>
+
+              {open && (
+                <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border bg-white shadow-lg">
+                  <Link href="/settings" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>
+                    Settings
+                  </Link>
+                  <button onClick={onLogout} className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Nav (móvil) */}
-      <div className="md:hidden border-t bg-white">
-        <div className="mx-auto flex gap-2 overflow-x-auto px-4 py-2">
-          {nav.map(({ href, label }) => {
-            const active = pathname?.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={clsx(
-                  'whitespace-nowrap rounded-xl px-3 py-1.5 text-sm',
-                  active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
-                )}
-              >
-                {label}
-              </Link>
-            );
-          })}
+      {/* Nav (móvil) solo si hay sesión */}
+      {isAuthed && (
+        <div className="md:hidden border-t bg-white">
+          <div className="mx-auto flex gap-2 overflow-x-auto px-4 py-2">
+            {nav.map(({ href, label }) => {
+              const active = pathname?.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={clsx(
+                    'whitespace-nowrap rounded-xl px-3 py-1.5 text-sm',
+                    active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
