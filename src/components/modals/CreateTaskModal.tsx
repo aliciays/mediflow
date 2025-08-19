@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Timestamp, addDoc, collection, getDocs } from 'firebase/firestore';
+import { Timestamp, addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 type UserLite = { uid: string; displayName?: string; email?: string; role?: string; };
@@ -41,21 +41,29 @@ const PRIORITY = [
 export default function CreateTaskModal({
   open, onClose, projectId, phases, defaultPhaseId, onCreated,
 }: Props) {
+  const [phaseOptions, setPhaseOptions] = useState<PhaseLite[]>(phases); // NEW
   const [phaseId, setPhaseId] = useState(defaultPhaseId || phases[0]?.id);
   const [name, setName] = useState('');
   const [status, setStatus] = useState<typeof STATUS[number]['value']>('todo');
   const [assignee, setAssignee] = useState<string>('');
   const [priority, setPriority] = useState<typeof PRIORITY[number]['value']>('med');
-  const [dueDate, setDueDate] = useState<string>(''); // yyyy-mm-dd
-  const [tagsText, setTagsText] = useState<string>(''); // coma-separado
+  const [dueDate, setDueDate] = useState<string>('');
+  const [tagsText, setTagsText] = useState<string>('');
   const [users, setUsers] = useState<UserLite[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // NEW: crear fase inline
+  const [creatingPhase, setCreatingPhase] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState('');
+  const [newPhaseDesc, setNewPhaseDesc] = useState('');
+  const [creatingPhaseBusy, setCreatingPhaseBusy] = useState(false);
+
   useEffect(() => {
     if (!open) return;
+    // sincroniza fases recibidas
+    setPhaseOptions(phases); // NEW
     setPhaseId(defaultPhaseId || phases[0]?.id);
     (async () => {
-      // Cargar usuarios para el selector de responsables
       const snap = await getDocs(collection(db, 'users'));
       const items: UserLite[] = snap.docs.map(d => ({ uid: d.id, ...(d.data() as any) }));
       setUsers(items);
@@ -63,6 +71,37 @@ export default function CreateTaskModal({
   }, [open, defaultPhaseId, phases]);
 
   const canSave = useMemo(() => name.trim().length > 2 && !!phaseId, [name, phaseId]);
+
+  // NEW: crear fase rápida
+  const handleCreatePhase = async () => {
+    const n = newPhaseName.trim();
+    if (!n) return;
+    setCreatingPhaseBusy(true);
+    try {
+      const ref = await addDoc(collection(db, `projects/${projectId}/phases`), {
+        name: n,
+        description: newPhaseDesc.trim() || '',
+        status: 'not_started',               // consistente con tu modelo
+        responsibleId: null,
+        startDate: null,
+        endDate: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Actualiza opciones locales y selecciona la nueva
+      const newPhase = { id: ref.id, name: n } as PhaseLite;
+      setPhaseOptions(prev => [...prev, newPhase]);
+      setPhaseId(ref.id);
+
+      // limpia mini-form
+      setNewPhaseName('');
+      setNewPhaseDesc('');
+      setCreatingPhase(false);
+    } finally {
+      setCreatingPhaseBusy(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!canSave) return;
@@ -87,7 +126,6 @@ export default function CreateTaskModal({
 
       const ref = await addDoc(collection(db, `projects/${projectId}/phases/${phaseId}/tasks`), payload);
 
-      // Devolvemos un objeto compatible con tu UI actual
       onCreated?.({
         phaseId,
         task: {
@@ -95,13 +133,14 @@ export default function CreateTaskModal({
           name: payload.name,
           status: payload.status || undefined,
           assignedTo: payload.assignedTo || undefined,
-          progress: payload.status === 'completed' ? 100 : payload.status === 'in_progress' ? 50 : 0,
+          progress:
+            payload.status === 'completed' ? 100 :
+            payload.status === 'in_progress' ? 50 : 0,
           subtasks: [],
         },
       });
 
       onClose();
-      // Limpiar formulario mínimo
       setName('');
       setStatus('todo');
       setAssignee('');
@@ -126,16 +165,66 @@ export default function CreateTaskModal({
         <div className="space-y-4 px-4 py-4">
           {/* Fase */}
           <div>
-            <label className="mb-1 block text-sm text-slate-600">Fase</label>
+            <div className="flex items-center justify-between">
+              <label className="mb-1 block text-sm text-slate-600">Fase</label>
+              {/* NEW: botón para crear fase */}
+              {!creatingPhase && (
+                <button
+                  type="button"
+                  onClick={() => setCreatingPhase(true)}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  + Nueva fase
+                </button>
+              )}
+            </div>
+
             <select
               value={phaseId}
               onChange={e => setPhaseId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
-              {phases.map(p => (
+              {phaseOptions.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
+
+            {/* NEW: mini-form para crear fase */}
+            {creatingPhase && (
+              <div className="mt-3 rounded-lg border border-slate-200 p-3">
+                <div className="text-xs font-medium mb-2 text-slate-600">Crear fase rápida</div>
+                <input
+                  value={newPhaseName}
+                  onChange={e => setNewPhaseName(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="Nombre de la fase (p. ej., Planificación del Proyecto)"
+                />
+                <textarea
+                  value={newPhaseDesc}
+                  onChange={e => setNewPhaseDesc(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="Descripción (opcional)"
+                  rows={2}
+                />
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCreatePhase}
+                    disabled={!newPhaseName.trim() || creatingPhaseBusy}
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                  >
+                    {creatingPhaseBusy ? 'Creando…' : 'Crear fase'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCreatingPhase(false); setNewPhaseName(''); setNewPhaseDesc(''); }}
+                    className="rounded-lg border px-3 py-1.5 text-xs"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Nombre */}

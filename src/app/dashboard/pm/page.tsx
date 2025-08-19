@@ -159,10 +159,16 @@ export default function PMDashboard() {
           >
             Crear proyecto
           </button>
-          <button className="flex-1 p-2 bg-yellow-500 text-white rounded">
+          <button
+            onClick={() => router.push('/reports')}
+            className="flex-1 p-2 bg-yellow-500 text-white rounded"
+          >
             Generar reporte
           </button>
-          <button className="flex-1 p-2 bg-purple-500 text-white rounded">
+          <button
+            onClick={() => router.push('/analytics')}
+            className="flex-1 p-2 bg-purple-500 text-white rounded"
+          >
             Analytics
           </button>
         </div>
