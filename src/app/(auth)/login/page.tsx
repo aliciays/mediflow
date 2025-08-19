@@ -31,7 +31,7 @@ export default function LoginPage() {
             router.push("/dashboard/pm");
             break;
           case "technician":
-            router.push("/dashboard/technician");
+            router.push("/dashboard/tech");
             break;
           case "viewer":
             router.push("/dashboard/viewer");

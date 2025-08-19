@@ -14,7 +14,7 @@ import SubtaskModal from '@/components/subtasks/SubtaskModal';
 // ===== Tipos =====
 type Subtask = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; assignedTo?: string };
 type Task = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; assignedTo?: string; subtasks: Subtask[]; progress: number };
-type Phase = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'|'completed'; responsibleId?: string; tasks: Task[]; progress: number };
+type Phase = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; responsibleId?: string; tasks: Task[]; progress: number };
 type Project = { id: string; name: string; managerId?: string; progress: number };
 
 // ===== Helpers de progreso =====
@@ -40,11 +40,25 @@ const recomputeProjectProgress = (phases: Phase[]) => {
   return Math.round(avg);
 };
 
+// --- Etiquetas y estilos de estado en español (solo lectura) ---
+const statusLabelEs = (s?: string) =>
+  s === 'completed' ? 'Completada' :
+  s === 'in_progress' ? 'En progreso' : 'Pendiente';
+
+const statusBadgeClass = (s?: string) =>
+  s === 'completed' ? 'bg-green-100 text-green-700' :
+  s === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+  'bg-slate-100 text-slate-700';
+
 // Progreso de una tarea a partir de subtareas
-const taskProgressFromSubtasks = (subs: Subtask[], fallbackStatus?: string) => {
-  if (subs.length === 0) return Math.round(statusWeight(fallbackStatus) * 100);
+const taskProgressFromSubtasks = (subs: Subtask[], taskStatus?: string) => {
+  const fromTask = Math.round(statusWeight(taskStatus) * 100);
+  if (subs.length === 0) return fromTask;
+
   const sum = subs.reduce((acc, s) => acc + statusWeight(s.status), 0);
-  return Math.round((sum / subs.length) * 100);
+  const fromSubs = Math.round((sum / subs.length) * 100);
+
+  return Math.max(fromTask, fromSubs);
 };
 
 export default function ProjectDetailPage() {
@@ -52,7 +66,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const { user, loading } = useUser();
 
-  const [role, setRole] = useState<string>(''); // rol desde Firestore
+  const [role, setRole] = useState<string>('');
   const [project, setProject] = useState<Project | null>(null);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [nameCache, setNameCache] = useState<Map<string, string>>(new Map());
@@ -77,7 +91,6 @@ export default function ProjectDetailPage() {
       }
       const snap = await getDoc(doc(db, 'users', user.uid));
       const r = snap.exists() ? (snap.data().role as string) : '';
-      // viewer no accede
       if (r === 'viewer') {
         router.push('/dashboard');
         return;
@@ -96,7 +109,7 @@ export default function ProjectDetailPage() {
     return name;
   };
 
-  // ------- Cargar proyecto + fases + tareas + subtareas (extraído a función) -------
+  // ------- Cargar proyecto + fases + tareas + subtareas -------
   const loadAll = async () => {
     if (!projectId) return;
     setBusy(true);
@@ -109,7 +122,6 @@ export default function ProjectDetailPage() {
         return;
       }
       const pData = pSnap.data();
-
       const baseProject: Project = {
         id: pSnap.id,
         name: pData.name,
@@ -187,10 +199,11 @@ export default function ProjectDetailPage() {
   // Carga inicial / recargas
   useEffect(() => {
     loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  // permisos
   const canEdit = useMemo(() => role === 'project_manager', [role]);
+  const canAddSubtask = useMemo(() => role === 'admin' || role === 'technician' || role === 'project_manager', [role]);
   const canSee = useMemo(() => role === 'admin' || role === 'project_manager' || role === 'technician', [role]);
 
   if (busy || !canSee || !project) return <div className="p-6">Cargando…</div>;
@@ -198,35 +211,8 @@ export default function ProjectDetailPage() {
   const managerName = nameCache.get(project.managerId || '') || 'Sin asignar';
 
   // ===== Acciones rápidas de subtareas =====
-  const toggleSubtaskStatus = async (phaseId: string, taskId: string, sub: Subtask) => {
-    const next: 'todo'|'in_progress'|'completed' =
-      sub.status === 'completed' ? 'todo'
-      : sub.status === 'in_progress' ? 'completed'
-      : 'in_progress';
-    await updateDoc(doc(db, `projects/${projectId}/phases/${phaseId}/tasks/${taskId}/subtasks/${sub.id}`), {
-      status: next,
-    });
-    await loadAll();
-  };
-
   const deleteSubtask = async (phaseId: string, taskId: string, subId: string) => {
     await deleteDoc(doc(db, `projects/${projectId}/phases/${phaseId}/tasks/${taskId}/subtasks/${subId}`));
-    await loadAll();
-  };
-
-  // ===== Editar tarea (quick edit) =====
-  const editTaskQuick = async (phaseId: string, task: Task) => {
-    const newName = window.prompt('Nuevo nombre de la tarea:', task.name);
-    if (newName === null) return; // cancel
-    const newStatus = (window.prompt('Estado (todo | in_progress | completed):', task.status || 'todo') || '').trim() as Task['status'];
-    if (!['todo','in_progress','completed',''].includes(newStatus || '')) {
-      alert('Estado no válido.');
-      return;
-    }
-    await updateDoc(doc(db, `projects/${projectId}/phases/${phaseId}/tasks/${task.id}`), {
-      name: newName.trim() || task.name,
-      status: newStatus || task.status || 'todo',
-    });
     await loadAll();
   };
 
@@ -240,18 +226,13 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="flex gap-2">
-          {canEdit && (
-            <>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="rounded bg-blue-600 px-3 py-1 text-white"
-              >
-                + Crear tarea
-              </button>
-              <button className="rounded bg-yellow-500 px-3 py-1 text-white">
-                Asignar responsable
-              </button>
-            </>
+          {role === 'project_manager' && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="rounded bg-blue-600 px-3 py-1 text-white"
+            >
+              + Crear tarea
+            </button>
           )}
           <button className="rounded bg-purple-600 px-3 py-1 text-white">Cronograma</button>
         </div>
@@ -288,26 +269,30 @@ export default function ProjectDetailPage() {
               const tResp = nameCache.get(tRespUid) || 'Sin asignar';
               if (tRespUid && !nameCache.has(tRespUid)) getUserName(tRespUid);
 
-              const stateBadge =
-                task.status === 'completed' ? 'bg-green-100 text-green-700'
-                : task.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-slate-100 text-slate-700';
-
               return (
                 <div key={task.id} className="ml-4 space-y-2 border-l pl-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`rounded px-2 py-0.5 text-xs ${stateBadge}`}>
-                        {task.status || 'todo'}
+                      <span className={`rounded border px-2 py-0.5 text-xs ${statusBadgeClass(task.status)}`}>
+                        {statusLabelEs(task.status)}
                       </span>
                       <div className="font-medium">{task.name}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{task.progress}%</span>
-                      {canEdit && (
+
+                      {/* PM puede editar y añadir subtarea */}
+                      {role === 'project_manager' && (
                         <>
                           <button
-                            onClick={() => editTaskQuick(phase.id, task)}
+                            onClick={() => {
+                              const newName = window.prompt('Nuevo nombre de la tarea:', task.name);
+                              if (newName && newName.trim()) {
+                                updateDoc(doc(db, `projects/${projectId}/phases/${phase.id}/tasks/${task.id}`), {
+                                  name: newName.trim(),
+                                }).then(loadAll);
+                              }
+                            }}
                             className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
                           >
                             Editar
@@ -323,12 +308,25 @@ export default function ProjectDetailPage() {
                           </button>
                         </>
                       )}
+
+                      {/* Admin y Tech solo pueden añadir subtarea */}
+                      {(role === 'admin' || role === 'technician') && (
+                        <button
+                          onClick={() => {
+                            setCtx({ phaseId: phase.id, taskId: task.id });
+                            setOpenSubtask(true);
+                          }}
+                          className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                        >
+                          + Subtarea
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <p className="text-sm text-gray-500">Responsable: {tResp}</p>
 
-                  {/* Subtareas (checklist) */}
+                  {/* Subtareas */}
                   <div className="space-y-1">
                     {task.subtasks.length === 0 && (
                       <div className="ml-4 text-xs text-slate-400">Sin subtareas</div>
@@ -339,28 +337,30 @@ export default function ProjectDetailPage() {
                       const stResp = nameCache.get(stRespUid) || 'Sin asignar';
                       if (stRespUid && !nameCache.has(stRespUid)) getUserName(stRespUid);
 
-                      const isDone = st.status === 'completed';
-                      const isProg = st.status === 'in_progress';
+                      const dotCls =
+                        st.status === 'completed'
+                          ? 'bg-green-500'
+                          : st.status === 'in_progress'
+                          ? 'bg-yellow-400'
+                          : 'bg-slate-300';
 
                       return (
-                        <div key={st.id} className="ml-4 flex items-center justify-between rounded border border-slate-200 px-2 py-1">
+                        <div
+                          key={st.id}
+                          className="ml-4 flex items-center justify-between rounded border border-slate-200 px-2 py-1"
+                        >
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleSubtaskStatus(phase.id, task.id, st)}
-                              className={`h-4 w-4 rounded border ${
-                                isDone ? 'bg-green-500 border-green-500' :
-                                isProg ? 'bg-yellow-400 border-yellow-400' : 'border-slate-300'
-                              }`}
-                              title="Cambiar estado"
-                            />
-                            <span className={`text-sm ${isDone ? 'line-through text-slate-400' : ''}`}>
-                              {st.name}
-                            </span>
+                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotCls}`} />
+                            <span className="text-sm">{st.name}</span>
                             <span className="text-xs text-slate-500">· {stResp}</span>
                           </div>
 
-                          <div className="flex items-center gap-1">
-                            {canEdit && (
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span className="rounded bg-slate-100 px-2 py-0.5">
+                              {statusLabelEs(st.status)}
+                            </span>
+                            {/* Acciones sobre subtareas solo si PM */}
+                            {role === 'project_manager' && (
                               <>
                                 <button
                                   onClick={() => {
@@ -376,13 +376,13 @@ export default function ProjectDetailPage() {
                                     });
                                     setOpenSubtask(true);
                                   }}
-                                  className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                                  className="rounded px-2 py-1 hover:bg-slate-100"
                                 >
                                   Editar
                                 </button>
                                 <button
                                   onClick={() => deleteSubtask(phase.id, task.id, st.id)}
-                                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                                  className="rounded px-2 py-1 text-red-600 hover:bg-red-50"
                                 >
                                   Borrar
                                 </button>
@@ -400,8 +400,8 @@ export default function ProjectDetailPage() {
         );
       })}
 
-      {/* Modal Crear Tarea */}
-      {canEdit && (
+      {/* Modal Crear Tarea solo PM */}
+      {role === 'project_manager' && (
         <CreateTaskModal
           open={showCreate}
           onClose={() => setShowCreate(false)}
@@ -412,7 +412,7 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Modal Subtarea (crear/editar) */}
-      {canEdit && openSubtask && ctx && (
+      {canAddSubtask && openSubtask && ctx && (
         <SubtaskModal
           open={openSubtask}
           onClose={() => setOpenSubtask(false)}
