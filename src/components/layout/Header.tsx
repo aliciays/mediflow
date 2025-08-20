@@ -9,6 +9,9 @@ import { getAuth, signOut } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 
+// 👇 añade esta import
+import AlertsBell from '@/components/alerts/AlertsBell';
+
 export default function Header() {
   const { user } = useUser();
   const router = useRouter();
@@ -16,35 +19,34 @@ export default function Header() {
   const auth = getAuth();
 
   const isAuthed = !!user;
+  const role = ((user as any)?.role || '') as 'admin'|'project_manager'|'technician'|'viewer'|'';
 
   // Nombre
   const displayName =
     (user as any)?.displayName ||
     (user as any)?.name ||
-    ((user as any)?.role === 'project_manager' ? 'Laura García'
-      : (user as any)?.role === 'admin' ? 'Admin'
-      : (user as any)?.role === 'technician' ? 'Técnico'
+    (role === 'project_manager' ? 'Laura García'
+      : role === 'admin' ? 'Admin'
+      : role === 'technician' ? 'Técnico'
       : 'Usuario');
 
   // Avatar
   const avatarSrc =
     (user as any)?.photoURL ||
-    ((user as any)?.role === 'project_manager' ? '/avatars/laura.jpg'
-      : (user as any)?.role === 'admin' ? '/avatars/admin.jpg'
-      : (user as any)?.role === 'technician' ? '/avatars/tech.jpg'
-      : (user as any)?.role === 'viewer' ? '/avatars/viewer.jpg'
+    (role === 'project_manager' ? '/avatars/laura.jpg'
+      : role === 'admin' ? '/avatars/admin.jpg'
+      : role === 'technician' ? '/avatars/tech.jpg'
+      : role === 'viewer' ? '/avatars/viewer.jpg'
       : '/avatars/default.jpg');
 
   // Nav links según rol (solo si hay sesión)
-  const nav = isAuthed ? getNavByRole((user as any)?.role) : [];
+  const nav = isAuthed ? getNavByRole(role === '' ? null : role) : [];
 
   // Dropdown
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
+    const onClick = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onEsc);
@@ -56,7 +58,7 @@ export default function Header() {
 
   const onLogout = async () => {
     await signOut(auth);
-    router.replace('/'); // vuelve al welcome
+    router.replace('/');
   };
 
   return (
@@ -68,7 +70,7 @@ export default function Header() {
           <span className="text-sm font-semibold tracking-wide text-slate-900">MediFlow</span>
         </Link>
 
-        {/* Nav (desktop) solo si hay sesión */}
+        {/* Nav (desktop) */}
         {isAuthed && (
           <nav className="hidden md:flex items-center gap-2">
             {nav.map(({ href, label }) => {
@@ -89,10 +91,15 @@ export default function Header() {
           </nav>
         )}
 
-        {/* Derecha */}
-        <div className="relative" ref={ref}>
+        {/* Derecha: campana + usuario */}
+        <div className="relative flex items-center gap-2" ref={ref}>
+          {isAuthed && (
+            // 👇 Campana global (muestra alertas de todos los proyectos).
+            // Para campana solo del proyecto actual, usa scope="project" y pasa projectId.
+            <AlertsBell scope="global" uid={user?.uid || ''} role={role} />
+          )}
+
           {!isAuthed ? (
-            // 🔹 Si no hay sesión, botón de login
             <Link
               href="/login"
               className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -127,7 +134,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Nav (móvil) solo si hay sesión */}
+      {/* Nav (móvil) */}
       {isAuthed && (
         <div className="md:hidden border-t bg-white">
           <div className="mx-auto flex gap-2 overflow-x-auto px-4 py-2">
