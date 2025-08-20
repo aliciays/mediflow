@@ -41,7 +41,7 @@ const PRIORITY = [
 export default function CreateTaskModal({
   open, onClose, projectId, phases, defaultPhaseId, onCreated,
 }: Props) {
-  const [phaseOptions, setPhaseOptions] = useState<PhaseLite[]>(phases); // NEW
+  const [phaseOptions, setPhaseOptions] = useState<PhaseLite[]>(phases);
   const [phaseId, setPhaseId] = useState(defaultPhaseId || phases[0]?.id);
   const [name, setName] = useState('');
   const [status, setStatus] = useState<typeof STATUS[number]['value']>('todo');
@@ -49,10 +49,14 @@ export default function CreateTaskModal({
   const [priority, setPriority] = useState<typeof PRIORITY[number]['value']>('med');
   const [dueDate, setDueDate] = useState<string>('');
   const [tagsText, setTagsText] = useState<string>('');
+
+  // NUEVO: checkbox de hito
+  const [isMilestone, setIsMilestone] = useState<boolean>(false);
+
   const [users, setUsers] = useState<UserLite[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // NEW: crear fase inline
+  // Crear fase inline
   const [creatingPhase, setCreatingPhase] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState('');
   const [newPhaseDesc, setNewPhaseDesc] = useState('');
@@ -60,8 +64,7 @@ export default function CreateTaskModal({
 
   useEffect(() => {
     if (!open) return;
-    // sincroniza fases recibidas
-    setPhaseOptions(phases); // NEW
+    setPhaseOptions(phases);
     setPhaseId(defaultPhaseId || phases[0]?.id);
     (async () => {
       const snap = await getDocs(collection(db, 'users'));
@@ -72,7 +75,7 @@ export default function CreateTaskModal({
 
   const canSave = useMemo(() => name.trim().length > 2 && !!phaseId, [name, phaseId]);
 
-  // NEW: crear fase rápida
+  // Crear fase rápida
   const handleCreatePhase = async () => {
     const n = newPhaseName.trim();
     if (!n) return;
@@ -81,20 +84,16 @@ export default function CreateTaskModal({
       const ref = await addDoc(collection(db, `projects/${projectId}/phases`), {
         name: n,
         description: newPhaseDesc.trim() || '',
-        status: 'not_started',               // consistente con tu modelo
+        status: 'not_started',
         responsibleId: null,
         startDate: null,
         endDate: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-
-      // Actualiza opciones locales y selecciona la nueva
       const newPhase = { id: ref.id, name: n } as PhaseLite;
       setPhaseOptions(prev => [...prev, newPhase]);
       setPhaseId(ref.id);
-
-      // limpia mini-form
       setNewPhaseName('');
       setNewPhaseDesc('');
       setCreatingPhase(false);
@@ -108,18 +107,24 @@ export default function CreateTaskModal({
     setSaving(true);
     try {
       const due = dueDate ? Timestamp.fromDate(new Date(dueDate)) : null;
-      const tags = tagsText
+      let tags = tagsText
         .split(',')
         .map(t => t.trim())
         .filter(Boolean);
 
-      const payload = {
+      // Si es hito, añadimos etiqueta 'hito' (útil para el timeline)
+      if (isMilestone && !tags.map(t => t.toLowerCase()).includes('hito')) {
+        tags = [...tags, 'hito'];
+      }
+
+      const payload: any = {
         name: name.trim(),
         status,
         assignedTo: assignee || null,
         priority,
         dueDate: due,
         tags,
+        isMilestone: isMilestone,      // ← guardamos flag explícito
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -147,6 +152,7 @@ export default function CreateTaskModal({
       setPriority('med');
       setDueDate('');
       setTagsText('');
+      setIsMilestone(false);
     } finally {
       setSaving(false);
     }
@@ -167,7 +173,6 @@ export default function CreateTaskModal({
           <div>
             <div className="flex items-center justify-between">
               <label className="mb-1 block text-sm text-slate-600">Fase</label>
-              {/* NEW: botón para crear fase */}
               {!creatingPhase && (
                 <button
                   type="button"
@@ -189,7 +194,6 @@ export default function CreateTaskModal({
               ))}
             </select>
 
-            {/* NEW: mini-form para crear fase */}
             {creatingPhase && (
               <div className="mt-3 rounded-lg border border-slate-200 p-3">
                 <div className="text-xs font-medium mb-2 text-slate-600">Crear fase rápida</div>
@@ -197,7 +201,7 @@ export default function CreateTaskModal({
                   value={newPhaseName}
                   onChange={e => setNewPhaseName(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="Nombre de la fase (p. ej., Planificación del Proyecto)"
+                  placeholder="Nombre de la fase"
                 />
                 <textarea
                   value={newPhaseDesc}
@@ -288,6 +292,20 @@ export default function CreateTaskModal({
               onChange={e => setDueDate(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
+          </div>
+
+          {/* Hito */}
+          <div className="flex items-center gap-2">
+            <input
+              id="isMilestone"
+              type="checkbox"
+              checked={isMilestone}
+              onChange={(e) => setIsMilestone(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="isMilestone" className="text-sm text-slate-700">
+              Marcar como hito (se mostrará como diamante en el cronograma)
+            </label>
           </div>
 
           {/* Tags */}
