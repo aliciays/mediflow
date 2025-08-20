@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Timestamp, addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-type UserLite = { uid: string; displayName?: string; email?: string; role?: string; };
+type UserLite = {
+  uid: string;
+  displayName?: string;
+  email?: string;
+  role?: string;
+  tags?: string[];
+};
 type PhaseLite = { id: string; name: string };
 
 type Props = {
@@ -38,6 +44,10 @@ const PRIORITY = [
   { value: 'high', label: 'Alta' },
 ] as const;
 
+// utilidad
+const norm = (s: string) => s.toLowerCase().trim();
+const roleWeight: Record<string, number> = { technician: 0, admin: 1, project_manager: 2, viewer: 3 };
+
 export default function CreateTaskModal({
   open, onClose, projectId, phases, defaultPhaseId, onCreated,
 }: Props) {
@@ -48,12 +58,16 @@ export default function CreateTaskModal({
   const [assignee, setAssignee] = useState<string>('');
   const [priority, setPriority] = useState<typeof PRIORITY[number]['value']>('med');
   const [dueDate, setDueDate] = useState<string>('');
-  const [tagsText, setTagsText] = useState<string>('');
 
-  // NUEVO: checkbox de hito
+  // TAGS - nueva UI
+  const [users, setUsers] = useState<UserLite[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [manualAssignee, setManualAssignee] = useState(false);
+
+  // Hito
   const [isMilestone, setIsMilestone] = useState<boolean>(false);
 
-  const [users, setUsers] = useState<UserLite[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Crear fase inline
@@ -62,6 +76,7 @@ export default function CreateTaskModal({
   const [newPhaseDesc, setNewPhaseDesc] = useState('');
   const [creatingPhaseBusy, setCreatingPhaseBusy] = useState(false);
 
+  // cargar users + tags
   useEffect(() => {
     if (!open) return;
     setPhaseOptions(phases);
@@ -70,10 +85,40 @@ export default function CreateTaskModal({
       const snap = await getDocs(collection(db, 'users'));
       const items: UserLite[] = snap.docs.map(d => ({ uid: d.id, ...(d.data() as any) }));
       setUsers(items);
+
+      const tagSet = new Set<string>();
+      items.forEach(u => (u.tags || []).forEach(t => tagSet.add(norm(t))));
+      // No mostramos 'hito' en el selector (se marca con checkbox aparte)
+      tagSet.delete('hito');
+      setAvailableTags(Array.from(tagSet).sort());
     })();
   }, [open, defaultPhaseId, phases]);
 
   const canSave = useMemo(() => name.trim().length > 2 && !!phaseId, [name, phaseId]);
+
+  // recomendación en base a selectedTags
+  const recommendation = useMemo(() => {
+    if (selectedTags.length === 0 || users.length === 0) return null;
+    const scored = users.map(u => {
+      const uTags = (u.tags || []).map(norm);
+      const score = selectedTags.reduce((acc, t) => acc + (uTags.includes(t) ? 1 : 0), 0);
+      return { uid: u.uid, name: u.displayName || u.email || u.uid, role: u.role || '', score };
+    });
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (roleWeight[a.role] ?? 9) - (roleWeight[b.role] ?? 9);
+    });
+    const top = scored[0];
+    if (!top || top.score === 0) return null;
+    return { ...top, max: selectedTags.length };
+  }, [selectedTags, users]);
+
+  // autoasignar cuando cambia la selección (si no lo ha hecho manualmente el usuario)
+  useEffect(() => {
+    if (!manualAssignee && recommendation?.uid) {
+      setAssignee(recommendation.uid);
+    }
+  }, [recommendation, manualAssignee]);
 
   // Crear fase rápida
   const handleCreatePhase = async () => {
@@ -107,15 +152,11 @@ export default function CreateTaskModal({
     setSaving(true);
     try {
       const due = dueDate ? Timestamp.fromDate(new Date(dueDate)) : null;
-      let tags = tagsText
-        .split(',')
-        .map(t => t.trim())
-        .filter(Boolean);
-
-      // Si es hito, añadimos etiqueta 'hito' (útil para el timeline)
-      if (isMilestone && !tags.map(t => t.toLowerCase()).includes('hito')) {
-        tags = [...tags, 'hito'];
-      }
+      // guardamos tags seleccionadas + 'hito' si aplica
+      const tags = [
+        ...selectedTags,
+        ...(isMilestone ? ['hito'] : []),
+      ];
 
       const payload: any = {
         name: name.trim(),
@@ -124,7 +165,7 @@ export default function CreateTaskModal({
         priority,
         dueDate: due,
         tags,
-        isMilestone: isMilestone,      // ← guardamos flag explícito
+        isMilestone,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -151,8 +192,9 @@ export default function CreateTaskModal({
       setAssignee('');
       setPriority('med');
       setDueDate('');
-      setTagsText('');
+      setSelectedTags([]);
       setIsMilestone(false);
+      setManualAssignee(false);
     } finally {
       setSaving(false);
     }
@@ -174,11 +216,7 @@ export default function CreateTaskModal({
             <div className="flex items-center justify-between">
               <label className="mb-1 block text-sm text-slate-600">Fase</label>
               {!creatingPhase && (
-                <button
-                  type="button"
-                  onClick={() => setCreatingPhase(true)}
-                  className="text-xs text-blue-600 hover:underline"
-                >
+                <button type="button" onClick={() => setCreatingPhase(true)} className="text-xs text-blue-600 hover:underline">
                   + Nueva fase
                 </button>
               )}
@@ -189,9 +227,7 @@ export default function CreateTaskModal({
               onChange={e => setPhaseId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
-              {phaseOptions.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              {phaseOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
 
             {creatingPhase && (
@@ -266,18 +302,62 @@ export default function CreateTaskModal({
             </div>
           </div>
 
+          {/* Competencias requeridas (tags) */}
+          <div>
+            <label className="mb-1 block text-sm text-slate-600">Competencias requeridas</label>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(t => {
+                const checked = selectedTags.includes(t);
+                return (
+                  <label key={t} className={`cursor-pointer select-none rounded-full border px-3 py-1 text-xs ${checked ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedTags(prev => checked ? prev.filter(x => x !== t) : [...prev, t]);
+                      }}
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+              {availableTags.length === 0 && (
+                <div className="text-xs text-slate-500">No hay etiquetas definidas en usuarios.</div>
+              )}
+            </div>
+
+            {/* Recomendación */}
+            <div className="mt-2 text-xs text-slate-600">
+              {recommendation
+                ? (
+                  <div className="flex items-center gap-2">
+                    <span>Sugerido: <strong>{recommendation.name}</strong> ({recommendation.score}/{recommendation.max} coincidencias)</span>
+                    <button
+                      type="button"
+                      className="rounded border px-2 py-0.5 hover:bg-slate-50"
+                      onClick={() => { setAssignee(recommendation.uid); setManualAssignee(false); }}
+                    >
+                      Asignar sugerido
+                    </button>
+                  </div>
+                )
+                : <span>No hay sugerencias para la selección actual.</span>}
+            </div>
+          </div>
+
           {/* Responsable */}
           <div>
             <label className="mb-1 block text-sm text-slate-600">Responsable</label>
             <select
               value={assignee}
-              onChange={e => setAssignee(e.target.value)}
+              onChange={e => { setAssignee(e.target.value); setManualAssignee(true); }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">Sin asignar</option>
               {users.map(u => (
                 <option key={u.uid} value={u.uid}>
-                  {u.displayName || u.email || u.uid}
+                  {(u.displayName || u.email || u.uid) + (u.role ? ` · ${u.role}` : '')}
                 </option>
               ))}
             </select>
@@ -306,17 +386,6 @@ export default function CreateTaskModal({
             <label htmlFor="isMilestone" className="text-sm text-slate-700">
               Marcar como hito (se mostrará como diamante en el cronograma)
             </label>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="mb-1 block text-sm text-slate-600">Etiquetas (separadas por comas)</label>
-            <input
-              value={tagsText}
-              onChange={e => setTagsText(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              placeholder="electrónica, firmware, pruebas"
-            />
           </div>
         </div>
 
