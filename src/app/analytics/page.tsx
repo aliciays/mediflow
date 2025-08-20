@@ -3,11 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import RequireRole from '@/components/auth/RequireRole';
 import { db } from '@/lib/firebase';
-import {
-  collection,
-  getDocs,
-  Timestamp,
-} from 'firebase/firestore';
+import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import {
   ResponsiveContainer,
   BarChart,
@@ -60,7 +56,6 @@ const withinRange = (ts: Timestamp | undefined, days: number | 'all') => {
   return when >= since;
 };
 
-// Abrevia nombres largos para el eje X y evita solapes
 const truncate = (s: string, len = 14) => (s.length > len ? s.slice(0, len - 1) + '…' : s);
 
 // Etiqueta de valor visible solo si > 0
@@ -74,7 +69,7 @@ const ValueLabel = (props: any) => {
   );
 };
 
-// Leyenda personalizada con chips de color y textos fijos (evita duplicados/confusión)
+// Leyenda personalizada
 const LegendChip: React.FC<{ color: string }> = ({ color }) => (
   <span
     style={{
@@ -88,9 +83,8 @@ const LegendChip: React.FC<{ color: string }> = ({ color }) => (
     }}
   />
 );
-
 const CriticalLegend = () => (
-  <div className="flex gap-6 text-sm">
+  <div className="flex gap-6 text-sm text-slate-700">
     <span><LegendChip color="#ef4444" />Atrasadas</span>
     <span><LegendChip color="#f59e0b" />Próximas (7d)</span>
   </div>
@@ -110,12 +104,11 @@ export default function AnalyticsPage() {
   // Tabla de críticas
   const [criticalRows, setCriticalRows] = useState<CriticalRow[]>([]);
 
-  // Load everything
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      // Users (map para nombres)
+      // Users
       const usersSnap = await getDocs(collection(db, 'users'));
       const uMap: Record<string,string> = {};
       usersSnap.forEach(u => {
@@ -149,7 +142,6 @@ export default function AnalyticsPage() {
         const workload: Record<string, number> = {};
 
         for (const ph of phasesSnap.docs) {
-          // ---- Tareas ----
           const tasksSnap = await getDocs(collection(db, `projects/${proj.id}/phases/${ph.id}/tasks`));
           for (const t of tasksSnap.docs) {
             const tData = t.data() as TaskDoc;
@@ -158,7 +150,6 @@ export default function AnalyticsPage() {
 
             const inRange = withinRange(tData.dueDate, rangeDays);
 
-            // Críticas
             if (tData.dueDate instanceof Timestamp) {
               const due = tData.dueDate.toDate();
               const isCompleted = tData.status === 'completed';
@@ -193,7 +184,7 @@ export default function AnalyticsPage() {
               workload[tData.assignedTo] = (workload[tData.assignedTo] || 0) + 1;
             }
 
-            // ---- Subtareas ----
+            // Subtareas
             const subSnap = await getDocs(collection(db, `projects/${proj.id}/phases/${ph.id}/tasks/${t.id}/subtasks`));
             for (const s of subSnap.docs) {
               const sd = s.data() as any;
@@ -245,7 +236,6 @@ export default function AnalyticsPage() {
 
       setKpis(allKPIs);
 
-      // Orden tabla
       rows.sort((a, b) => {
         if (a.status !== b.status) return a.status === 'Atrasada' ? -1 : 1;
         return a.dueDate.getTime() - b.dueDate.getTime();
@@ -258,7 +248,7 @@ export default function AnalyticsPage() {
     load();
   }, [rangeDays]);
 
-  // Filtro por proyecto en gráfico/tabla
+  // Filtros
   const filteredKPIs = useMemo(() => {
     if (selectedProject === 'all') return kpis;
     return kpis.filter(k => k.projectId === selectedProject);
@@ -271,7 +261,6 @@ export default function AnalyticsPage() {
     return Math.round(avg);
   }, [filteredKPIs]);
 
-  // Workload agregado (con nombres)
   const workloadData = useMemo(() => {
     const merged: Record<string, number> = {};
     for (const k of filteredKPIs) {
@@ -287,7 +276,6 @@ export default function AnalyticsPage() {
     return arr;
   }, [filteredKPIs, userNameMap]);
 
-  // Tabla críticas filtrada
   const filteredRows = useMemo(() => {
     if (selectedProject === 'all') return criticalRows;
     return criticalRows.filter(r => r.projectId === selectedProject);
@@ -317,94 +305,100 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="p-6">Cargando…</div>;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="h-8 w-40 bg-slate-200 rounded animate-pulse" />
+        <div className="h-24 bg-white border border-slate-200 rounded-2xl animate-pulse" />
+        <div className="h-80 bg-white border border-slate-200 rounded-2xl animate-pulse" />
+        <div className="h-72 bg-white border border-slate-200 rounded-2xl animate-pulse" />
+        <div className="h-64 bg-white border border-slate-200 rounded-2xl animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <RequireRole allowed={['project_manager']}>
-      <div className="p-6 space-y-8">
+      <div className="p-6 space-y-6">
+        {/* Header + filtros */}
         <div className="flex items-end gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Analytics</h1>
 
           <div className="ml-auto flex gap-3">
-            <select
-              className="rounded border px-3 py-2"
-              value={selectedProject}
-              onChange={(e)=>setSelectedProject(e.target.value as any)}
-            >
-              <option value="all">Todos los proyectos</option>
-              {projectOptions.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={selectedProject}
+                onChange={(e)=>setSelectedProject(e.target.value as any)}
+              >
+                <option value="all">Todos los proyectos</option>
+                {projectOptions.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▼</span>
+            </div>
 
-            <select
-              className="rounded border px-3 py-2"
-              value={String(rangeDays)}
-              onChange={(e)=>{
-                const v = e.target.value === 'all' ? 'all' : Number(e.target.value) as 30|60|90;
-                setRangeDays(v);
-              }}
-            >
-              <option value="30">Últimos 30 días</option>
-              <option value="60">Últimos 60 días</option>
-              <option value="90">Últimos 90 días</option>
-              <option value="all">Todas las fechas</option>
-            </select>
+            <div className="relative">
+              <select
+                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={String(rangeDays)}
+                onChange={(e)=>{
+                  const v = e.target.value === 'all' ? 'all' : Number(e.target.value) as 30|60|90;
+                  setRangeDays(v);
+                }}
+              >
+                <option value="30">Últimos 30 días</option>
+                <option value="60">Últimos 60 días</option>
+                <option value="90">Últimos 90 días</option>
+                <option value="all">Todas las fechas</option>
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▼</span>
+            </div>
           </div>
         </div>
 
         {/* KPI principal */}
-        <div className="bg-white p-4 shadow rounded">
-          <h2 className="font-semibold mb-2">Progreso medio (selección)</h2>
-          <p className="text-3xl">{globalProgress}%</p>
+        <div
+          className="bg-white border border-slate-200 rounded-2xl p-5"
+          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
+        >
+          <h2 className="text-sm font-medium text-slate-700 mb-1">Progreso medio (selección)</h2>
+          <div className="flex items-baseline gap-3">
+            <span className="text-4xl font-extrabold text-slate-900">{globalProgress}%</span>
+            <span className="text-slate-500 text-sm">calculado sobre proyectos filtrados</span>
+          </div>
         </div>
 
-        {/* Críticas por proyecto — gráfico mejorado */}
-        <div className="bg-white p-4 shadow rounded">
-          <h2 className="font-semibold mb-4">
-            Tareas críticas por proyecto (atrasadas y próximas a 7 días)
-          </h2>
-
-          {/* Leyenda personalizada fija */}
-          <div className="mb-2"><CriticalLegend /></div>
+        {/* Críticas por proyecto */}
+        <div
+          className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3"
+          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-slate-800">
+              Tareas críticas por proyecto (atrasadas y próximas a 7 días)
+            </h2>
+            <CriticalLegend />
+          </div>
 
           <ResponsiveContainer width="100%" height={320}>
             <BarChart
-              data={filteredKPIs.map(k => ({
-                ...k,
-                shortName: truncate(k.projectName),
-              }))}
+              data={filteredKPIs.map(k => ({ ...k, shortName: truncate(k.projectName) }))}
               margin={{ top: 10, right: 20, bottom: 70, left: 0 }}
               barGap={6}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="shortName"
-                interval={0}
-                angle={-28}
-                textAnchor="end"
-                height={70}
-              />
+              <XAxis dataKey="shortName" interval={0} angle={-28} textAnchor="end" height={70} />
               <YAxis allowDecimals={false}/>
               <Tooltip
-                formatter={(v: any, n: string) => [
-                  v,
-                  n === 'overdueTasks' ? 'Atrasadas' : 'Próximas (7d)',
-                ]}
-                labelFormatter={(_, payload) => {
-                  const full = payload?.[0]?.payload?.projectName ?? '';
-                  return `Proyecto: ${full}`;
-                }}
+                formatter={(v: any, n: string) => [v, n === 'overdueTasks' ? 'Atrasadas' : 'Próximas (7d)']}
+                labelFormatter={(_, payload) => `Proyecto: ${payload?.[0]?.payload?.projectName ?? ''}`}
               />
-              {/* Usamos Legend solo para spacing, pero sin contenido (ya tenemos custom) */}
               <Legend content={() => null} />
-
-              {/* Atrasadas (rojo) */}
               <Bar dataKey="overdueTasks" fill="#ef4444">
                 <LabelList content={<ValueLabel />} />
               </Bar>
-
-              {/* Próximas (naranja) */}
               <Bar dataKey="dueSoonTasks" fill="#f59e0b">
                 <LabelList content={<ValueLabel />} />
               </Bar>
@@ -412,15 +406,14 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Workload por técnico */}
-        <div className="bg-white p-4 shadow rounded">
-          <h2 className="font-semibold mb-4">Workload por técnico</h2>
+        {/* Workload */}
+        <div
+          className="bg-white border border-slate-200 rounded-2xl p-5"
+          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
+        >
+          <h2 className="font-semibold text-slate-800 mb-4">Workload por técnico</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={workloadData}
-              margin={{ top: 10, right: 20, bottom: 60, left: 0 }}
-              barSize={28}
-            >
+            <BarChart data={workloadData} margin={{ top: 10, right: 20, bottom: 60, left: 0 }} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" interval={0} angle={-25} textAnchor="end" height={70}/>
               <YAxis allowDecimals={false}/>
@@ -432,13 +425,27 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Tabla de tareas críticas */}
-        <div className="bg-white p-4 shadow rounded">
+        {/* Tabla */}
+        <div
+          className="bg-white border border-slate-200 rounded-2xl p-5"
+          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Tareas críticas (lista detallada)</h2>
+            <h2 className="font-semibold text-slate-800">Tareas críticas (lista detallada)</h2>
             <button
               onClick={exportCSV}
-              className="px-3 py-2 rounded bg-slate-800 text-white text-sm"
+              title="Exportar a CSV"
+              style={{
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg,#0f172a,#1f2937)',
+                color: '#fff',
+                fontWeight: 600,
+                boxShadow: '0 6px 16px rgba(2,6,23,.18)',
+                transition: 'transform .15s ease, filter .15s ease',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.05)'; e.currentTarget.style.transform='translateY(-1px)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform='translateY(0)'; }}
             >
               Exportar CSV
             </button>

@@ -37,7 +37,6 @@ const normStatus = (s?: string): 'todo' | 'in_progress' | 'completed' => {
   const val = s.toLowerCase();
   if (val === 'completed' || val === 'done') return 'completed';
   if (val === 'in_progress' || val === 'doing' || val === 'progress') return 'in_progress';
-  // mapea not_started / pending / todo -> 'todo'
   return 'todo';
 };
 
@@ -87,7 +86,8 @@ export default function ReportsPage() {
       setLoading(false);
     };
     load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selected),
@@ -125,7 +125,7 @@ export default function ReportsPage() {
     const workloadCounter: Record<string, number> = {};
     const phases: ReportPhase[] = [];
 
-    // --------- CAMINO A: Datos EMBEBIDOS (como en tu projects.json) ---------
+    // --------- CAMINO A: Datos EMBEBIDOS ---------
     if (Array.isArray(projData?.phases) && projData.phases.length > 0) {
       for (const ph of projData.phases) {
         const phTasks: ReportTask[] = [];
@@ -151,7 +151,6 @@ export default function ReportsPage() {
             subs.push(st);
             subProgressAcc += statusWeight(sStatus);
 
-            // críticos (7d) y workload
             const sDone = sStatus === 'completed';
             if (sDue) {
               if (!sDone && sDue < now) {
@@ -171,7 +170,6 @@ export default function ReportsPage() {
                   severity: 'Próxima (7d)',
                 });
               }
-              // hitos (30 días)
               if (!sDone && sDue >= now && sDue <= monthAhead) {
                 milestones.push({
                   type: 'Subtarea',
@@ -207,7 +205,6 @@ export default function ReportsPage() {
           tasksForProgress += 1;
           tasksProgressAcc += tProgress;
 
-          // críticos de tarea (7d), hitos (30d) y workload
           const tDone = tStatus === 'completed';
           if (tDue) {
             if (!tDone && tDue < now) {
@@ -256,7 +253,7 @@ export default function ReportsPage() {
         phases.push(phase);
       }
     } else {
-      // --------- CAMINO B: Subcolecciones Firestore (lo que tenías) ---------
+      // --------- CAMINO B: Subcolecciones Firestore ---------
       const phasesSnap = await getDocs(collection(db, `projects/${selectedProject.id}/phases`));
       for (const ph of phasesSnap.docs) {
         const phData = ph.data() as any;
@@ -391,13 +388,11 @@ export default function ReportsPage() {
       }
     }
 
-    // progreso global
     const overall =
       phases.length > 0
         ? Math.round(phases.reduce((acc, p) => acc + (p.progress || 0), 0) / phases.length)
         : 0;
 
-    // workload -> array con nombres
     const workloadRows: WorkloadRow[] = await Promise.all(
       Object.entries(workloadCounter).map(async ([uid, count]) => ({
         name: await nameOf(uid),
@@ -406,12 +401,9 @@ export default function ReportsPage() {
     );
     workloadRows.sort((a, b) => b.count - a.count);
 
-    // ordenar críticos: Atrasadas primero
     critical.sort((a, b) => (a.severity === 'Atrasada' && b.severity !== 'Atrasada' ? -1 : 1));
 
-    // ordenar hitos por fecha asc
     milestones.sort((a, b) => {
-      // dd/mm/aaaa -> aaaa-mm-dd para comparar
       const parse = (s: string) => {
         const [dd, mm, yyyy] = s.split('/');
         return new Date(`${yyyy}-${mm}-${dd}`).getTime();
@@ -446,33 +438,142 @@ export default function ReportsPage() {
       <div className="p-6 space-y-6">
         <h1 className="text-2xl font-bold">Reportes</h1>
 
-        {/* Selección proyecto */}
-        <div className="flex items-center gap-3">
-          <select className="border rounded px-3 py-2" value={selected} onChange={(e) => setSelected(e.target.value)}>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Checkboxes para secciones */}
-        <div className="space-y-2">
-          <label><input type="checkbox" checked={sections.summary} onChange={() => toggleSection('summary')} /> Resumen ejecutivo</label>
-          <label><input type="checkbox" checked={sections.risks} onChange={() => toggleSection('risks')} /> Riesgos y alertas</label>
-          <label><input type="checkbox" checked={sections.milestones} onChange={() => toggleSection('milestones')} /> Próximos hitos</label>
-          <label><input type="checkbox" checked={sections.workload} onChange={() => toggleSection('workload')} /> Carga de trabajo</label>
-          <label><input type="checkbox" checked={sections.costs} onChange={() => toggleSection('costs')} disabled /> Costes (próximamente)</label>
-        </div>
-
-        <button
-          onClick={generate}
-          className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-          disabled={!selectedProject}
+        {/* Card contenedora */}
+        <div
+          className="bg-white border border-slate-200 rounded-2xl p-5"
+          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
         >
-          Generar PDF
-        </button>
+          {/* Selector de proyecto */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Proyecto
+            </label>
+            <div className="relative">
+              <select
+                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                ▼
+              </span>
+            </div>
+            {selectedProject?.name && (
+              <p className="mt-2 text-xs text-slate-500">
+                Genera un informe PDF para <span className="font-semibold text-slate-700">{selectedProject.name}</span>.
+              </p>
+            )}
+          </div>
+
+          {/* Secciones */}
+          <div className="mb-6">
+            <span className="block text-sm font-medium text-slate-700 mb-2">
+              Contenido del reporte
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="inline-flex items-center gap-2 text-slate-700 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  checked={sections.summary}
+                  onChange={() => toggleSection('summary')}
+                />
+                Resumen ejecutivo
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-slate-700 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  checked={sections.risks}
+                  onChange={() => toggleSection('risks')}
+                />
+                Riesgos y alertas
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-slate-700 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  checked={sections.milestones}
+                  onChange={() => toggleSection('milestones')}
+                />
+                Próximos hitos
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-slate-700 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  checked={sections.workload}
+                  onChange={() => toggleSection('workload')}
+                />
+                Carga de trabajo
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-slate-400 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300"
+                  checked={sections.costs}
+                  onChange={() => toggleSection('costs')}
+                  disabled
+                />
+                Costes (próximamente)
+              </label>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row sm:justify-end">
+            <button
+              onClick={generate}
+              disabled={!selectedProject}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '12px 18px',
+                border: 'none',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg,#f59e0b,#d97706)',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: !selectedProject ? 'not-allowed' : 'pointer',
+                boxShadow: !selectedProject
+                  ? '0 0 0 rgba(0,0,0,0)'
+                  : '0 10px 20px rgba(0,0,0,.15)',
+                opacity: !selectedProject ? 0.6 : 1,
+                transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
+              }}
+              onMouseOver={(e) => {
+                if (!selectedProject) return;
+                e.currentTarget.style.filter = 'brightness(1.08)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 14px 28px rgba(0,0,0,.18)';
+              }}
+              onMouseOut={(e) => {
+                if (!selectedProject) return;
+                e.currentTarget.style.filter = 'brightness(1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,.15)';
+              }}
+              title={selectedProject ? 'Generar PDF del reporte' : 'Selecciona un proyecto'}
+            >
+              Generar PDF
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </RequireRole>
   );

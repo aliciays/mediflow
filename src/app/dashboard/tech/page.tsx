@@ -20,6 +20,7 @@ export default function TechDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksThisWeek, setTasksThisWeek] = useState(0);
   const [criticalAlerts, setCriticalAlerts] = useState(0);
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function TechDashboard() {
           for (const phaseDoc of phasesSnap.docs) {
             const tasksSnap = await getDocs(collection(db, `projects/${docSnap.id}/phases/${phaseDoc.id}/tasks`));
             tasksSnap.forEach(taskDoc => {
-              const t = taskDoc.data();
+              const t = taskDoc.data() as any;
               totalTasksProject++;
 
               if (t.status === 'completed') completedTasks += 1;
@@ -101,48 +102,69 @@ export default function TechDashboard() {
     <RequireRole allowed={['technician']}>
       <div className="p-6 space-y-8">
         <h1 className="text-2xl font-bold mb-4">Resumen</h1>
+
+        {/* Métricas principales */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-white shadow rounded text-center">
-            {projects.length} PROYECTOS ACTIVOS
-          </div>
-          <div className="p-4 bg-white shadow rounded text-center">
-            {tasksThisWeek} TAREAS ESTA SEMANA
-          </div>
-          <div className="p-4 bg-white shadow rounded text-center">
-            {criticalAlerts} ALERTAS CRÍTICAS
-          </div>
+          {[`${projects.length} PROYECTOS ACTIVOS`, `${tasksThisWeek} TAREAS ESTA SEMANA`, `${criticalAlerts} ALERTAS CRÍTICAS`].map(
+            (txt, i) => (
+              <div
+                key={i}
+                className="p-4 bg-white rounded-xl text-center font-semibold shadow hover:shadow-md transition"
+              >
+                {txt}
+              </div>
+            )
+          )}
         </div>
 
         <h2 className="text-xl font-bold">Proyectos Activos</h2>
+
+        {/* Lista de proyectos */}
         <div className="space-y-4">
-          {projects.map(p => (
-            <div key={p.id} className="p-4 bg-white shadow rounded">
-              <div className="flex justify-between">
-                <h3 className="font-semibold">{p.name}</h3>
-                <span>{p.progress}%</span>
+          {projects.map(p => {
+            const hovered = hoverId === p.id;
+            return (
+              <div
+                key={p.id}
+                onMouseEnter={() => setHoverId(p.id)}
+                onMouseLeave={() => setHoverId(null)}
+                className={`p-4 bg-white rounded-xl cursor-pointer transition
+                  ${hovered ? 'shadow-lg -translate-y-0.5' : 'shadow'}
+                `}
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">{p.name}</h3>
+                  <span className="text-sm text-slate-600">{p.progress}%</span>
+                </div>
+
+                {/* Barra de progreso */}
+                <div className="h-2 bg-gray-200 rounded mt-2 mb-3 overflow-hidden">
+                  <div
+                    className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                    style={{ width: `${p.progress}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>
+                    Fase: <strong className="text-slate-800">{p.phase}</strong>
+                  </span>
+                </div>
+
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={() => router.push(`/dashboard/projects/${p.id}`)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 shadow hover:brightness-105 transition"
+                  >
+                    Ver detalle
+                  </button>
+                </div>
               </div>
-              <div className="h-2 bg-gray-200 rounded mt-1 mb-3">
-                <div
-                  className="h-2 bg-blue-500 rounded"
-                  style={{ width: `${p.progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Fase: {p.phase}</span>
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <button
-                  className="px-3 py-1 bg-blue-500 text-white rounded"
-                  onClick={() => router.push(`/dashboard/projects/${p.id}`)}
-                >
-                  Ver detalle
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* TECH: SIN BOTONES */}
+        {/* TECH: sin botones extra */}
       </div>
     </RequireRole>
   );

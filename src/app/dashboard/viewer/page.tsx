@@ -87,14 +87,27 @@ export default function ViewerDashboard() {
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-6">
+        <div style={{ display: "flex", gap: "16px", marginTop: "24px" }}>
           <button
             onClick={() => router.push(`/dashboard/timeline`)}
-            className="px-6 py-3 text-lg font-semibold rounded-lg bg-purple-600 text-white shadow hover:bg-purple-700 transition"
+            style={{
+              flex: 1,
+              height: "48px",
+              border: "none",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg,#4f46e5,#4338ca)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "16px",
+              cursor: "pointer",
+              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
+            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
           >
-            Ver Cronograma
+            Ver cronograma
           </button>
-        </div>
+         </div> 
       </div>
     </RequireRole>
   );

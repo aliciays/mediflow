@@ -152,26 +152,68 @@ export default function PMDashboard() {
         </div>
 
         {/* BOTONES */}
-        <div className="flex gap-4 mt-6">
+        <div style={{ display: "flex", gap: "16px", marginTop: "24px" }}>
           <button
             onClick={() => router.push('/dashboard/pm/new')}
-            className="flex-1 p-2 bg-green-500 text-white rounded"
+            style={{
+              flex: 1,
+              height: "48px",
+              border: "none",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg,#22c55e,#16a34a)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "16px",
+              cursor: "pointer",
+              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
+            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
           >
             Crear proyecto
           </button>
+
           <button
             onClick={() => router.push('/reports')}
-            className="flex-1 p-2 bg-yellow-500 text-white rounded"
+            style={{
+              flex: 1,
+              height: "48px",
+              border: "none",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg,#f59e0b,#d97706)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "16px",
+              cursor: "pointer",
+              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
+            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
           >
             Generar reporte
           </button>
+
           <button
             onClick={() => router.push('/analytics')}
-            className="flex-1 p-2 bg-purple-500 text-white rounded"
+            style={{
+              flex: 1,
+              height: "48px",
+              border: "none",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "16px",
+              cursor: "pointer",
+              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
+            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
           >
             Analytics
           </button>
         </div>
+
       </div>
     </RequireRole>
   );

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/lib/useUser';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, Timestamp, updateDoc } from 'firebase/firestore';
@@ -26,7 +25,6 @@ export default function MyTasksPage() {
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [filterDue, setFilterDue] = useState<string>('all');
-  const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
@@ -104,7 +102,9 @@ export default function MyTasksPage() {
       result = result.filter(t => t.dueDate && t.dueDate < now);
     }
 
+    // Agrupación por proyecto y orden por fecha
     result.sort((a, b) => {
+      if (a.projectName !== b.projectName) return a.projectName.localeCompare(b.projectName);
       if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;
       return a.dueDate.getTime() - b.dueDate.getTime();
@@ -113,65 +113,104 @@ export default function MyTasksPage() {
     return result;
   }, [tasks, selectedProject, filterDue]);
 
+  // Agrupamos por proyecto para pintar
+  const groupedByProject = useMemo(() => {
+    const groups: Record<string, TaskItem[]> = {};
+    for (const t of filteredTasks) {
+      if (!groups[t.projectId]) groups[t.projectId] = [];
+      groups[t.projectId].push(t);
+    }
+    return groups;
+  }, [filteredTasks]);
+
   if (loading) return <div className="p-6">Cargando…</div>;
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Mis tareas</h1>
 
-      {/* filtros */}
-      <div className="flex gap-4">
-        <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} className="border rounded p-2">
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          value={selectedProject}
+          onChange={e => setSelectedProject(e.target.value)}
+          className="rounded border px-3 py-2 text-sm bg-white shadow-sm hover:shadow transition"
+        >
           <option value="all">Todos los proyectos</option>
           {projects.map(p => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
 
-        <select value={filterDue} onChange={e => setFilterDue(e.target.value)} className="border rounded p-2">
+        <select
+          value={filterDue}
+          onChange={e => setFilterDue(e.target.value)}
+          className="rounded border px-3 py-2 text-sm bg-white shadow-sm hover:shadow transition"
+        >
           <option value="all">Todas las fechas</option>
           <option value="week">Próximos 7 días</option>
           <option value="overdue">Atrasadas</option>
         </select>
       </div>
 
-      {/* lista */}
-      <div className="space-y-2">
-        {filteredTasks.map(t => (
-          <div
-            key={`${t.type}-${t.id}`}
-            className={`flex justify-between items-center p-3 rounded shadow ${
-              t.type === 'subtask' ? 'bg-gray-50 ml-6 border-l-4 border-blue-300' : 'bg-white'
-            }`}
-          >
-            <div>
-              <StatusPill
-                value={t.status}
-                onChange={async (next) => {
-                  const basePath = `projects/${t.projectId}/phases/${t.phaseId}/tasks/${t.taskId}`;
-                  const ref = t.type === 'task'
-                    ? doc(db, basePath)
-                    : doc(db, `${basePath}/subtasks/${t.id}`);
+      {/* Lista de proyectos con tareas */}
+      {Object.keys(groupedByProject).length === 0 && (
+        <div className="text-slate-500 text-sm text-center py-6">
+          No tienes tareas asignadas.
+        </div>
+      )}
 
-                  await updateDoc(ref, { status: next });
+      <div className="space-y-6">
+        {Object.entries(groupedByProject).map(([projId, projTasks]) => (
+          <div key={projId} className="bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-3">
+              {projTasks[0].projectName}
+            </h2>
+            <div className="space-y-2">
+              {projTasks.map(t => (
+                <div
+                  key={`${t.type}-${t.id}`}
+                  className={`flex justify-between items-center p-3 rounded-lg shadow-sm hover:shadow-md transition ${
+                    t.type === 'subtask'
+                      ? 'bg-gray-50 ml-6 border-l-4 border-blue-300'
+                      : 'bg-white'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center">
+                      <StatusPill
+                        value={t.status}
+                        onChange={async (next) => {
+                          const basePath = `projects/${t.projectId}/phases/${t.phaseId}/tasks/${t.taskId}`;
+                          const ref = t.type === 'task'
+                            ? doc(db, basePath)
+                            : doc(db, `${basePath}/subtasks/${t.id}`);
 
-                  if (next === 'completed') {
-                    setTasks(prev => prev.filter(x => !(x.id === t.id && x.type === t.type)));
-                  } else {
-                    setTasks(prev => prev.map(x => x.id === t.id && x.type === t.type ? { ...x, status: next } : x));
-                  }
-                }}
-              />
-              <span className="font-medium ml-2">
-                {t.type === 'subtask' ? `↳ ${t.name}` : t.name}
-              </span>
-              <div className="text-xs text-gray-500">Proyecto: {t.projectName}</div>
-              <div className="text-xs text-gray-400 italic">{t.type === 'subtask' ? 'Subtarea' : 'Tarea'}</div>
+                          await updateDoc(ref, { status: next });
+
+                          if (next === 'completed') {
+                            setTasks(prev => prev.filter(x => !(x.id === t.id && x.type === t.type)));
+                          } else {
+                            setTasks(prev => prev.map(x => x.id === t.id && x.type === t.type ? { ...x, status: next } : x));
+                          }
+                        }}
+                      />
+                      <span className="font-medium ml-2">
+                        {t.type === 'subtask' ? `↳ ${t.name}` : t.name}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 italic">
+                      {t.type === 'subtask' ? 'Subtarea' : 'Tarea'}
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {t.dueDate ? t.dueDate.toLocaleDateString() : 'Sin fecha'}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="text-sm text-gray-600">{t.dueDate ? t.dueDate.toLocaleDateString() : 'Sin fecha'}</div>
           </div>
         ))}
-        {filteredTasks.length === 0 && <div className="text-gray-500">No tienes tareas asignadas.</div>}
       </div>
     </div>
   );

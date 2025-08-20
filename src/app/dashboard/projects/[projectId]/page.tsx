@@ -225,24 +225,79 @@ export default function ProjectDetailPage() {
           <p className="text-sm text-gray-500">Responsable: {managerName}</p>
         </div>
 
-        <div className="flex gap-2">
-          {role === 'project_manager' && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded bg-blue-600 px-3 py-1 text-white"
-            >
-              + Crear tarea
-            </button>
-          )}
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={() => router.push(`/dashboard/timeline`)}
-              className="px-6 py-3 text-lg font-semibold rounded-lg bg-purple-600 text-white shadow hover:bg-purple-700 transition"
-            >
-              Ver Cronograma
-            </button>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '24px', alignItems: 'center' }}>
+          {/* Crear tarea (usa setShowCreate si lo tienes, si no deja el router.push) */}
+          <button
+            onClick={() => (typeof setShowCreate === 'function' ? setShowCreate(true) : router.push('/dashboard/pm/new'))}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              height: '48px',
+              padding: '0 22px',
+              minWidth: '170px',
+              border: 'none',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', // azul
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '16px',
+              letterSpacing: '.1px',
+              cursor: 'pointer',
+              boxShadow: '0 10px 22px rgba(37,99,235,.35)',
+              transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.07)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 14px 26px rgba(37,99,235,.40)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.filter = 'brightness(1)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 22px rgba(37,99,235,.35)';
+            }}
+          >
+            {/* icono + */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M11 5a1 1 0 012 0v6h6a1 1 0 010 2h-6v6a1 1 0 01-2 0v-6H5a1 1 0 010-2h6V5z" />
+            </svg>
+            <span>Crear tarea</span>
+          </button>
+
+          {/* Cronograma (más ancho) */}
+          <button
+            onClick={() => router.push('/dashboard/timeline')}
+            style={{
+              height: '48px',
+              padding: '0 26px',         // ← más ancho
+              minWidth: '180px',         // ← ancho mínimo para que no quede “justo”
+              border: 'none',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg,#4f46e5,#4338ca)', // morado
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '16px',
+              letterSpacing: '.1px',
+              cursor: 'pointer',
+              boxShadow: '0 10px 22px rgba(79,70,229,.30)',
+              transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.07)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 14px 26px rgba(79,70,229,.38)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.filter = 'brightness(1)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 22px rgba(79,70,229,.30)';
+            }}
+          >
+            Cronograma
+          </button>
         </div>
-        </div>
+
       </div>
 
       {/* Progreso del proyecto */}
