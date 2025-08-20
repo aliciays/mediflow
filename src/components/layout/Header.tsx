@@ -32,6 +32,7 @@ export default function Header() {
     ((user as any)?.role === 'project_manager' ? '/avatars/laura.jpg'
       : (user as any)?.role === 'admin' ? '/avatars/admin.jpg'
       : (user as any)?.role === 'technician' ? '/avatars/tech.jpg'
+      : (user as any)?.role === 'viewer' ? '/avatars/viewer.jpg'
       : '/avatars/default.jpg');
 
   // Nav links según rol (solo si hay sesión)

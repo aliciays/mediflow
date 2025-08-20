@@ -234,7 +234,14 @@ export default function ProjectDetailPage() {
               + Crear tarea
             </button>
           )}
-          <button className="rounded bg-purple-600 px-3 py-1 text-white">Cronograma</button>
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => router.push(`/dashboard/timeline`)}
+              className="px-6 py-3 text-lg font-semibold rounded-lg bg-purple-600 text-white shadow hover:bg-purple-700 transition"
+            >
+              Ver Cronograma
+            </button>
+        </div>
         </div>
       </div>
 
