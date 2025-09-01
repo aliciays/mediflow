@@ -109,41 +109,59 @@ export default function PMDashboard() {
   return (
     <RequireRole allowed={['admin', 'project_manager']}>
       <div className="p-6 space-y-8">
-        
         {/* RESUMEN */}
         <h1 className="text-2xl font-bold mb-4">Resumen</h1>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-white shadow rounded text-center">
-            {projects.length} PROYECTOS ACTIVOS
-          </div>
-          <div className="p-4 bg-white shadow rounded text-center">
-            {tasksThisWeek} TAREAS ESTA SEMANA
-          </div>
-          <div className="p-4 bg-white shadow rounded text-center">
-            {criticalAlerts} ALERTAS CRÍTICAS
-          </div>
+          {[`${projects.length} PROYECTOS ACTIVOS`,
+            `${tasksThisWeek} TAREAS ESTA SEMANA`,
+            `${criticalAlerts} ALERTAS CRÍTICAS`].map((txt, i) => (
+            <div
+              key={i}
+              className="p-4 text-center font-semibold tracking-wide
+                        bg-white border border-slate-200 rounded-xl
+                        shadow-sm"
+            >
+              {txt}
+            </div>
+          ))}
         </div>
 
         {/* PROYECTOS ACTIVOS */}
         <h2 className="text-xl font-bold">Proyectos Activos</h2>
         <div className="space-y-4">
-          {projects.map(p => (
-            <div key={p.id} className="p-4 bg-white shadow rounded">
+          {projects.map((p) => (
+            <div
+              key={p.id}
+              className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm"
+            >
               <div className="flex justify-between">
                 <h3 className="font-semibold">{p.name}</h3>
-                <span>{p.progress}%</span>
+                <span className="text-slate-700">{p.progress}%</span>
               </div>
-              <div className="h-2 bg-gray-200 rounded mt-1 mb-3">
+
+              {/* Progreso */}
+              <div className="h-2 bg-slate-200 rounded-full mt-2 mb-3 overflow-hidden">
                 <div
-                  className="h-2 bg-blue-500 rounded"
+                  className="h-full bg-blue-600 rounded-full transition-all duration-300"
                   style={{ width: `${p.progress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Fase: {p.phase}</span>
+
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>
+                  Fase: <strong className="text-slate-900">{p.phase}</strong>
+                </span>
               </div>
-              <div className="flex justify-between items-center mt-2">
-                <button className="px-3 py-1 bg-blue-500 text-white rounded" onClick={() => router.push(`/dashboard/projects/${p.id}`)}>
+
+              <div className="mt-3">
+                <button
+                  onClick={() => router.push(`/dashboard/projects/${p.id}`)}
+                  className="inline-flex items-center h-10 px-4 rounded-lg
+                            bg-blue-600 text-white font-medium
+                            shadow-sm transition hover:bg-blue-700
+                            focus-visible:outline-none focus-visible:ring-2
+                            focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+                >
                   Ver detalle
                 </button>
               </div>
@@ -152,68 +170,41 @@ export default function PMDashboard() {
         </div>
 
         {/* BOTONES */}
-        <div style={{ display: "flex", gap: "16px", marginTop: "24px" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+          {/* Crear proyecto (éxito sobrio) */}
           <button
             onClick={() => router.push('/dashboard/pm/new')}
-            style={{
-              flex: 1,
-              height: "48px",
-              border: "none",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg,#22c55e,#16a34a)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "16px",
-              cursor: "pointer",
-              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
-            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
+            className="h-12 w-full rounded-xl bg-green-600 text-white font-semibold
+                      shadow-sm transition hover:bg-green-700
+                      focus-visible:outline-none focus-visible:ring-2
+                      focus-visible:ring-green-400 focus-visible:ring-offset-2"
           >
             Crear proyecto
           </button>
 
+          {/* Generar reporte (secundario serio) */}
           <button
             onClick={() => router.push('/reports')}
-            style={{
-              flex: 1,
-              height: "48px",
-              border: "none",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg,#f59e0b,#d97706)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "16px",
-              cursor: "pointer",
-              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
-            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
+            className="h-12 w-full rounded-xl bg-white text-slate-800 font-semibold
+                      border border-slate-300 shadow-sm
+                      transition hover:bg-slate-50
+                      focus-visible:outline-none focus-visible:ring-2
+                      focus-visible:ring-slate-300 focus-visible:ring-offset-2"
           >
             Generar reporte
           </button>
 
+          {/* Analytics (primario alterno en azul) */}
           <button
             onClick={() => router.push('/analytics')}
-            style={{
-              flex: 1,
-              height: "48px",
-              border: "none",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "16px",
-              cursor: "pointer",
-              boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
-            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
+            className="h-12 w-full rounded-xl bg-blue-600 text-white font-semibold
+                      shadow-sm transition hover:bg-blue-700
+                      focus-visible:outline-none focus-visible:ring-2
+                      focus-visible:ring-blue-400 focus-visible:ring-offset-2"
           >
             Analytics
           </button>
         </div>
-
       </div>
     </RequireRole>
   );

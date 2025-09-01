@@ -17,21 +17,48 @@ export default function HomePage() {
             Plataforma CRM especializada en la gestión de proyectos técnicos en
             dispositivos médicos. Organiza, asigna y visualiza el progreso con facilidad.
           </p>
+
+          {/* Botones con sistema de variantes */}
           <div className="flex gap-4 justify-center lg:justify-start">
+            {/* Primario azul sólido */}
             <button
               onClick={() => router.push("/login")}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
+              className="
+                inline-flex items-center justify-center
+                h-11 min-w-[44px] px-6
+                rounded-lg
+                bg-blue-600 text-white
+                font-medium
+                shadow-sm
+                transition
+                hover:bg-blue-700
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2
+                disabled:opacity-50 disabled:cursor-not-allowed
+              "
             >
               Iniciar sesión
             </button>
+
+            {/* Secundario outlined azul */}
             <button
               onClick={() => router.push("/about")}
-              className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+              className="
+                inline-flex items-center justify-center
+                h-11 min-w-[44px] px-6
+                rounded-lg
+                border border-blue-600 text-blue-600
+                font-medium
+                transition
+                hover:bg-blue-50
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-2
+                disabled:opacity-50 disabled:cursor-not-allowed
+              "
             >
               Saber más
             </button>
           </div>
         </div>
+
         <div className="flex-1">
           <Image
             src="/landing/hero.jpg"
@@ -53,13 +80,16 @@ export default function HomePage() {
               { img: "/landing/tasks.png", title: "Asignación inteligente", desc: "Asigna responsables según etiquetas y roles." },
               { img: "/landing/timeline.png", title: "Cronogramas claros", desc: "Visualiza hitos, plazos y reportes en un solo lugar." },
             ].map((f, i) => (
-              <div key={i} className="p-6 rounded-lg shadow hover:shadow-md transition">
+              <div
+                key={i}
+                className="p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition bg-white"
+              >
                 <div className="h-32 md:h-40 flex items-center justify-center mb-5">
                   <Image
                     src={f.img}
                     alt={f.title}
-                    width={320}   // más grande
-                    height={220}  // más grande
+                    width={320}
+                    height={220}
                     className="object-contain max-h-full"
                     priority={i === 0}
                   />
@@ -72,16 +102,27 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      {/* CTA Final */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20 text-center">
+      {/* CTA Final (gradiente azul → turquesa) */}
+      <section className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">
           Empieza a organizar tus proyectos médicos con MediFlow
         </h2>
-        <p className="mb-8 text-lg opacity-90">Tu equipo técnico, más eficiente que nunca.</p>
+        <p className="mb-8 text-lg/7 opacity-90">Tu equipo técnico, más eficiente que nunca.</p>
+
+        {/* Botón claro sobre fondo intenso */}
         <button
           onClick={() => router.push("/login")}
-          className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg shadow hover:bg-slate-100"
+          className="
+            inline-flex items-center justify-center
+            h-11 px-8
+            rounded-lg
+            bg-white text-blue-700
+            font-semibold
+            shadow
+            transition
+            hover:bg-slate-100
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700
+          "
         >
           Iniciar sesión ahora
         </button>

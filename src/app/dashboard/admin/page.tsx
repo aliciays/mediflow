@@ -91,144 +91,106 @@ export default function AdminDashboard() {
   }, [user, loading]);
 
   return (
-    <RequireRole allowed={['admin']}>
-      <div className="p-6 space-y-8">
-        <h1 className="text-2xl font-bold mb-4">Resumen</h1>
+  <RequireRole allowed={['admin']}>
+    <div className="p-6 space-y-8">
+      <h1 className="text-2xl font-bold mb-4">Resumen</h1>
 
-        {/* Métricos */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[`${projects.length} PROYECTOS ACTIVOS`, `${tasksThisWeek} TAREAS ESTA SEMANA`, `${criticalAlerts} ALERTAS CRÍTICAS`].map(
-            (txt, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '16px',
-                  background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '14px',
-                  boxShadow: '0 6px 16px rgba(2,6,23,.05)',
-                  textAlign: 'center',
-                  fontWeight: 700,
-                  letterSpacing: '.3px',
-                }}
-              >
-                {txt}
+      {/* Métricos */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[`${projects.length} PROYECTOS ACTIVOS`, `${tasksThisWeek} TAREAS ESTA SEMANA`, `${criticalAlerts} ALERTAS CRÍTICAS`].map(
+          (txt, i) => (
+            <div
+              key={i}
+              className="p-4 text-center font-bold tracking-wide bg-white border border-slate-200 rounded-2xl shadow-[0_6px_16px_rgba(2,6,23,.05)]"
+            >
+              {txt}
+            </div>
+          )
+        )}
+      </div>
+
+      <h2 className="text-xl font-bold">Proyectos Activos</h2>
+
+      <div className="space-y-4">
+        {projects.map((p) => {
+          const hovered = hoverId === p.id;
+          return (
+            <div
+              key={p.id}
+              onMouseEnter={() => setHoverId(p.id)}
+              onMouseLeave={() => setHoverId(null)}
+              className={[
+                "p-4 bg-white border border-slate-200 rounded-2xl transition",
+                hovered
+                  ? "shadow-[0_14px_30px_rgba(2,6,23,.08)] -translate-y-0.5"
+                  : "shadow-[0_8px_18px_rgba(2,6,23,.04)]",
+              ].join(" ")}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <h3 className="font-semibold text-[16px]">{p.name}</h3>
+                <span className="text-[14px] text-slate-700">{p.progress}%</span>
               </div>
-            )
-          )}
-        </div>
 
-        <h2 className="text-xl font-bold">Proyectos Activos</h2>
-
-        <div className="space-y-4">
-          {projects.map(p => {
-            const hovered = hoverId === p.id;
-            return (
-              <div
-                key={p.id}
-                onMouseEnter={() => setHoverId(p.id)}
-                onMouseLeave={() => setHoverId(null)}
-                style={{
-                  padding: '16px',
-                  background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  boxShadow: hovered
-                    ? '0 14px 30px rgba(2,6,23,.08)'
-                    : '0 8px 18px rgba(2,6,23,.04)',
-                  transition: 'box-shadow .2s ease, transform .2s ease',
-                  transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
-                }}
-              >
-                {/* Header */}
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold" style={{ fontSize: 16 }}>{p.name}</h3>
-                  <span style={{ fontSize: 14, color: '#334155' }}>{p.progress}%</span>
-                </div>
-
-                {/* Progreso */}
-                <div style={{ height: 10, background: '#e5e7eb', borderRadius: 9999, overflow: 'hidden', marginTop: 8, marginBottom: 12 }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${p.progress}%`,
-                      background: 'linear-gradient(90deg,#3b82f6,#2563eb)',
-                      borderRadius: 9999,
-                      transition: 'width .4s ease',
-                    }}
-                  />
-                </div>
-
-                {/* Meta info */}
-                <div className="flex justify-between text-sm" style={{ color: '#475569' }}>
-                  <span>Fase: <strong style={{ color: '#111827' }}>{p.phase}</strong></span>
-                </div>
-
-                {/* CTA */}
-                <div className="flex justify-between items-center mt-3">
-                  <button
-                    onClick={() => router.push(`/dashboard/projects/${p.id}`)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 14px',
-                      border: 'none',
-                      borderRadius: 10,
-                      background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      cursor: 'pointer',                        // 👈 mano al pasar
-                      boxShadow: '0 8px 18px rgba(37,99,235,.25)',
-                      transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1.07)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 12px 24px rgba(37,99,235,.32)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 8px 18px rgba(37,99,235,.25)';
-                    }}
-                    title="Ver detalle del proyecto"
-                  >
-                    Ver detalle
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z" />
-                    </svg>
-                  </button>
-                </div>
+              {/* Progreso */}
+              <div className="h-2 mt-2 mb-3 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600"
+                  style={{ width: `${p.progress}%` }}
+                />
               </div>
-            );
-          })}
-        </div>
 
-        {/* CTA reports */}
-        <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-          <button
+              {/* Meta */}
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>
+                  Fase: <strong className="text-slate-900">{p.phase}</strong>
+                </span>
+              </div>
+
+              {/* CTA */}
+              <div className="mt-3">
+                <button
+                  onClick={() => router.push(`/dashboard/projects/${p.id}`)}
+                  title="Ver detalle del proyecto"
+                  className="
+                    inline-flex items-center gap-2
+                    h-10 px-4
+                    rounded-xl
+                    text-white font-semibold
+                    bg-gradient-to-br from-blue-600 to-blue-700
+                    shadow-[0_8px_18px_rgba(37,99,235,.25)]
+                    transition transform
+                    hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(37,99,235,.32)]
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2
+                  "
+                >
+                  Ver detalle
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+
+      
+      <button
             onClick={() => router.push('/reports')}
-            style={{
-              flex: 1,
-              height: '48px',
-              border: 'none',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg,#f59e0b,#d97706)',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '16px',
-              cursor: 'pointer',
-              boxShadow: '0 10px 20px rgba(0,0,0,.15)',
-              transition: 'transform .15s ease, filter .15s ease',
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            className="h-12 w-full rounded-xl bg-white text-slate-800 font-semibold
+                      border border-slate-300 shadow-sm
+                      transition hover:bg-slate-50
+                      focus-visible:outline-none focus-visible:ring-2
+                      focus-visible:ring-slate-300 focus-visible:ring-offset-2"
           >
             Generar reporte
           </button>
-        </div>
       </div>
-    </RequireRole>
-  );
+
+  </RequireRole>
+);
+
+
 }

@@ -243,166 +243,166 @@ export default function TimelinePage() {
   const tasksTop = 12;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Cronograma</h1>
-          <p className="text-slate-600 text-sm">
-            {busy ? 'Cargando…' : (
-              <>
-                Proyecto: <span className="font-medium text-slate-700">{projectName}</span>
-                {' · '}
-                {fmtLong(start)} — {fmtLong(end)}
-              </>
-            )}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedId ?? ''}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="rounded border px-3 py-2 text-sm"
-            aria-label="Seleccionar proyecto"
-          >
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-
-          {canEdit && (
-            <button
-              onClick={() => router.push(`/dashboard/projects/${selectedId}`)}
-              className="px-3 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
-            >
-              Ir al proyecto (editar)
-            </button>
+  <div className="p-6 space-y-6">
+    {/* Header */}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Cronograma</h1>
+        <p className="text-slate-600 text-sm">
+          {busy ? 'Cargando…' : (
+            <>
+              Proyecto: <span className="font-medium text-slate-800">{projectName}</span>
+              {' · '}
+              {fmtLong(start)} — {fmtLong(end)}
+            </>
           )}
-        </div>
+        </p>
       </div>
 
-      {/* Leyenda */}
-      <div className="flex items-center gap-4 text-xs text-slate-600">
-        <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-6 rounded bg-slate-300" aria-hidden /> Fase
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-6 rounded bg-fuchsia-500" aria-hidden /> Tarea
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rotate-45 bg-emerald-500" aria-hidden /> Hito
-        </div>
+      <div className="flex items-center gap-3">
+        <select
+          value={selectedId ?? ''}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+          aria-label="Seleccionar proyecto"
+        >
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+
+        {canEdit && (
+          <button
+            onClick={() => router.push(`/dashboard/projects/${selectedId}`)}
+            className="px-3 py-2 rounded-md bg-slate-700 text-white text-sm font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          >
+            Ir al proyecto (editar)
+          </button>
+        )}
       </div>
+    </div>
 
-      {/* Timeline */}
-      <div className="overflow-x-auto rounded border bg-white">
-        {/* Cabecera pegajosa con rango y marca de hoy */}
-        <div className="sticky top-0 z-10 border-b bg-slate-50 px-4 py-2 text-xs text-slate-600">
-          <div className="flex items-center justify-between">
-            <div>{fmtShort(start)} — {fmtShort(end)}</div>
-            {showToday && (
-              <div className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
-                Hoy
-              </div>
-            )}
-          </div>
-        </div>
+    {/* Leyenda */}
+    <div className="flex items-center gap-4 text-xs text-slate-700">
+      <div className="flex items-center gap-1">
+        <span className="inline-block h-2 w-6 rounded bg-slate-400" aria-hidden /> Fase
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="inline-block h-2 w-6 rounded bg-indigo-500" aria-hidden /> Tarea
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="inline-block h-2 w-2 rotate-45 bg-emerald-500" aria-hidden /> Hito
+      </div>
+    </div>
 
-        <div className="min-w-[980px] p-4">
-          {/* Skeleton de carga */}
-          {busy && (
-            <div className="space-y-4">
-              {[0,1].map(i => (
-                <div key={i} className="animate-pulse">
-                  <div className="mb-2 h-4 w-60 rounded bg-slate-200" />
-                  <div className="h-20 rounded bg-slate-100" />
-                </div>
-              ))}
+    {/* Timeline */}
+    <div className="overflow-x-auto rounded border border-slate-200 bg-slate-50">
+      {/* Cabecera pegajosa con rango y marca de hoy */}
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-2 text-xs text-slate-600">
+        <div className="flex items-center justify-between">
+          <div>{fmtShort(start)} — {fmtShort(end)}</div>
+          {showToday && (
+            <div className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
+              Hoy
             </div>
           )}
+        </div>
+      </div>
 
-          {!busy && rows.map(row => {
-            const phBar = bar(row.start, row.end);
-            const totalHeight = phaseBaseH + (row.laneCount > 0 ? tasksTop + row.laneCount * (laneH + laneGap) : 0);
+      <div className="min-w-[980px] p-4">
+        {/* Skeleton de carga */}
+        {busy && (
+          <div className="space-y-4">
+            {[0,1].map(i => (
+              <div key={i} className="animate-pulse">
+                <div className="mb-2 h-4 w-60 rounded bg-slate-200" />
+                <div className="h-20 rounded bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        )}
 
-            return (
-              <section key={row.id} className="mb-6">
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="font-medium">{row.name}</h2>
-                  <div className="text-xs text-slate-500">
-                    {fmtLong(row.start)} · {fmtLong(row.end)}
-                  </div>
+        {!busy && rows.map(row => {
+          const phBar = bar(row.start, row.end);
+          const totalHeight = phaseBaseH + (row.laneCount > 0 ? tasksTop + row.laneCount * (laneH + laneGap) : 0);
+
+          return (
+            <section key={row.id} className="mb-6">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-medium text-slate-800">{row.name}</h2>
+                <div className="text-xs text-slate-500">
+                  {fmtLong(row.start)} · {fmtLong(row.end)}
                 </div>
+              </div>
 
-                <div className="relative rounded bg-slate-100" style={{ height: totalHeight }}>
-                  {/* Rejilla sutil */}
+              <div className="relative rounded bg-slate-100" style={{ height: totalHeight }}>
+                {/* Rejilla sutil */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-40 [background-image:repeating-linear-gradient(to_right,transparent_0,transparent_47px,#e5e7eb_48px),repeating-linear-gradient(to_bottom,transparent_0,transparent_15px,#e5e7eb_16px)]"
+                  aria-hidden
+                />
+                {/* Marca de hoy */}
+                {showToday && (
                   <div
-                    className="pointer-events-none absolute inset-0 opacity-40 [background-image:repeating-linear-gradient(to_right,transparent_0,transparent_47px,#e5e7eb_48px),repeating-linear-gradient(to_bottom,transparent_0,transparent_15px,#e5e7eb_16px)]"
+                    className="absolute inset-y-0 w-px bg-rose-500/70"
+                    style={{ left: `${todayPct}%` }}
                     aria-hidden
                   />
-                  {/* Marca de hoy */}
-                  {showToday && (
-                    <div
-                      className="absolute inset-y-0 w-px bg-rose-500/70"
-                      style={{ left: `${todayPct}%` }}
-                      aria-hidden
-                    />
-                  )}
+                )}
 
-                  {/* FASE */}
-                  <div
-                    className="absolute top-2 h-4 rounded bg-slate-300"
-                    style={{ left: `${phBar.left}%`, width: `${phBar.width}%` }}
-                    title={`${row.name}: ${fmtLong(row.start)} — ${fmtLong(row.end)}`}
-                    aria-label={`Fase ${row.name}`}
-                  />
+                {/* FASE */}
+                <div
+                  className="absolute top-2 h-4 rounded bg-slate-400"
+                  style={{ left: `${phBar.left}%`, width: `${phBar.width}%` }}
+                  title={`${row.name}: ${fmtLong(row.start)} — ${fmtLong(row.end)}`}
+                  aria-label={`Fase ${row.name}`}
+                />
 
-                  {/* TAREAS / HITOS */}
-                  {row.tasks.map(t => {
-                    const tb = bar(t.start, t.end);
-                    const top = tasksTop + t.lane * (laneH + laneGap);
+                {/* TAREAS / HITOS */}
+                {row.tasks.map(t => {
+                  const tb = bar(t.start, t.end);
+                  const top = tasksTop + t.lane * (laneH + laneGap);
 
-                    if (t.isMilestone) {
-                      const center = tb.left + tb.width / 2;
-                      return (
-                        <div
-                          key={t.id}
-                          className="absolute h-3 w-3 rotate-45 bg-emerald-500 shadow"
-                          style={{ top: top + 2, left: `calc(${center}% - 6px)` }}
-                          title={`${t.name} · Hito · ${fmtLong(t.start)}`}
-                          aria-label={`${t.name} (hito)`}
-                        />
-                      );
-                    }
-
+                  if (t.isMilestone) {
+                    const center = tb.left + tb.width / 2;
                     return (
                       <div
                         key={t.id}
-                        className="absolute rounded bg-fuchsia-500/90 hover:bg-fuchsia-600 transition"
-                        style={{ top, left: `${tb.left}%`, width: `${tb.width}%`, height: laneH }}
-                        title={`${t.name}: ${fmtLong(t.start)} — ${fmtLong(t.end)}`}
-                        aria-label={t.name}
+                        className="absolute h-3 w-3 rotate-45 bg-emerald-500 shadow"
+                        style={{ top: top + 2, left: `calc(${center}% - 6px)` }}
+                        title={`${t.name} · Hito · ${fmtLong(t.start)}`}
+                        aria-label={`${t.name} (hito)`}
                       />
                     );
-                  })}
-                </div>
-              </section>
-            );
-          })}
+                  }
 
-          {!busy && rows.length === 0 && (
-            <div className="rounded border border-dashed p-8 text-center text-sm text-slate-500">
-              Este proyecto no tiene datos de cronograma todavía.
-            </div>
-          )}
-        </div>
+                  return (
+                    <div
+                      key={t.id}
+                      className="absolute rounded bg-indigo-500/90 hover:bg-indigo-600 transition"
+                      style={{ top, left: `${tb.left}%`, width: `${tb.width}%`, height: laneH }}
+                      title={`${t.name}: ${fmtLong(t.start)} — ${fmtLong(t.end)}`}
+                      aria-label={t.name}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        {!busy && rows.length === 0 && (
+          <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+            Este proyecto no tiene datos de cronograma todavía.
+          </div>
+        )}
       </div>
-
-      {role !== 'project_manager' && (
-        <p className="text-xs text-slate-500">
-          Vista de solo lectura. La edición del cronograma está limitada a Project Manager.
-        </p>
-      )}
     </div>
-  );
+
+    {role !== 'project_manager' && (
+      <p className="text-xs text-slate-500">
+        Vista de solo lectura. La edición del cronograma está limitada a Project Manager.
+      </p>
+    )}
+  </div>
+);
 }

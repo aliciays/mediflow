@@ -49,28 +49,64 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <h1 className="text-3xl font-bold mb-4">Iniciar sesión</h1>
-      <input
-        type="email"
-        placeholder="Correo electrónico"
-        className="border p-2 mb-2 w-64"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Contraseña"
-        className="border p-2 mb-4 w-64"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button
-        onClick={handleLogin}
-        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Entrar
-      </button>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="w-full max-w-sm bg-white shadow-md rounded-xl p-8">
+        <h1 className="text-2xl font-bold text-center mb-6 text-slate-800">
+          Iniciar sesión
+        </h1>
+
+        <div className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            className="
+              w-full h-11 px-4
+              border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400
+              text-slate-700 placeholder-slate-400
+            "
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="
+              w-full h-11 px-4
+              border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400
+              text-slate-700 placeholder-slate-400
+            "
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            onClick={handleLogin}
+            className="
+              w-full h-11
+              rounded-lg
+              bg-blue-600 text-white font-semibold
+              shadow-sm
+              transition
+              hover:bg-blue-700
+              focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+          >
+            Entrar
+          </button>
+        </div>
+
+        {/* Opcional: enlaces de apoyo */}
+        <div className="mt-6 text-center text-sm">
+          <a href="#" className="text-blue-600 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+      </div>
     </main>
   );
+
 }

@@ -64,18 +64,31 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-14 text-center">
-        <h2 className="text-2xl font-bold mb-3">¿Listo para empezar?</h2>
-        <p className="opacity-90 mb-6">Crea tu cuenta o accede para organizar tus proyectos hoy mismo.</p>
+      {/* CTA Final (gradiente azul → turquesa) */}
+      <section className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-20 text-center">
+        <h2 className="text-3xl font-bold mb-4">
+          ¿Listo para empezar?
+        </h2>
+        <p className="mb-8 text-lg/7 opacity-90">Crea tu cuenta o accede para organizar tus proyectos hoy mismo.</p>
+
+        {/* Botón claro sobre fondo intenso */}
         <button
-          onClick={() => router.push('/login')}
-          className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg shadow hover:bg-slate-100"
+          onClick={() => router.push("/login")}
+          className="
+            inline-flex items-center justify-center
+            h-11 px-8
+            rounded-lg
+            bg-white text-blue-700
+            font-semibold
+            shadow
+            transition
+            hover:bg-slate-100
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700
+          "
         >
-          Iniciar sesión
+          Iniciar sesión ahora
         </button>
       </section>
-
       <footer className="py-6 text-center text-slate-500 text-sm">
         © {new Date().getFullYear()} MediFlow · Todos los derechos reservados
       </footer>
