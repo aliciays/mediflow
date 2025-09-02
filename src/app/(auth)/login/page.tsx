@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { app } from "@/lib/firebase"; // tu inicialización de Firebase
+import { app } from "@/lib/firebase"; 
 
 export default function LoginPage() {
   const router = useRouter();

@@ -102,7 +102,6 @@ export default function MyTasksPage() {
       result = result.filter(t => t.dueDate && t.dueDate < now);
     }
 
-    // Agrupación por proyecto y orden por fecha
     result.sort((a, b) => {
       if (a.projectName !== b.projectName) return a.projectName.localeCompare(b.projectName);
       if (!a.dueDate) return 1;
@@ -113,7 +112,7 @@ export default function MyTasksPage() {
     return result;
   }, [tasks, selectedProject, filterDue]);
 
-  // Agrupamos por proyecto para pintar
+
   const groupedByProject = useMemo(() => {
     const groups: Record<string, TaskItem[]> = {};
     for (const t of filteredTasks) {
@@ -129,7 +128,7 @@ export default function MyTasksPage() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Mis tareas</h1>
 
-      {/* Filtros */}
+ 
       <div className="flex flex-wrap gap-4">
         <select
           value={selectedProject}
@@ -153,7 +152,7 @@ export default function MyTasksPage() {
         </select>
       </div>
 
-      {/* Lista de proyectos con tareas */}
+
       {Object.keys(groupedByProject).length === 0 && (
         <div className="text-slate-500 text-sm text-center py-6">
           No tienes tareas asignadas.

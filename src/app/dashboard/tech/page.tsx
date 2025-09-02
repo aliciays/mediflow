@@ -119,7 +119,6 @@ export default function TechDashboard() {
 
         <h2 className="text-xl font-bold">Proyectos Activos</h2>
 
-        {/* Lista de proyectos */}
         <div className="space-y-4">
           {projects.map(p => {
             const hovered = hoverId === p.id;
@@ -137,7 +136,6 @@ export default function TechDashboard() {
                   <span className="text-sm text-slate-600">{p.progress}%</span>
                 </div>
 
-                {/* Barra de progreso */}
                 <div className="h-2 bg-gray-200 rounded mt-2 mb-3 overflow-hidden">
                   <div
                     className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
@@ -164,7 +162,6 @@ export default function TechDashboard() {
           })}
         </div>
 
-        {/* TECH: sin botones extra */}
       </div>
     </RequireRole>
   );

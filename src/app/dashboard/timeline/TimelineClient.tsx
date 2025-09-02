@@ -8,7 +8,6 @@ import { db } from '@/lib/firebase';
 import { useUser } from '@/lib/useUser';
 import { collection, doc, getDoc, getDocs, Timestamp } from 'firebase/firestore';
 
-/* ----------------------------- Tipado mínimo ----------------------------- */
 type Role = 'admin'|'project_manager'|'technician'|'viewer'|'';
 type ProjectLite = { id: string; name: string };
 
@@ -30,12 +29,12 @@ type TaskDoc = {
   isMilestone?: boolean;
 };
 
-/* --------------------------------- Utils --------------------------------- */
+
 const toDate = (t?: Timestamp | null) => (t ? t.toDate() : undefined);
 const fmtShort = (d: Date) => d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 const fmtLong  = (d?: Date) => d ? d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-/** Rango a partir de un conjunto de fechas con saneado y “extensión mínima” */
+
 function rangeOf(dates: Array<Date | undefined>) {
   const ms = dates.filter(Boolean).map(d => (d as Date).getTime());
   if (!ms.length) {
@@ -52,7 +51,7 @@ function rangeOf(dates: Array<Date | undefined>) {
   return { min, max };
 }
 
-/** Coloca elementos en carriles para evitar solapes (interval graph greedy) */
+
 function placeInLanes<T extends { start?: Date; end?: Date }>(items: T[]) {
   const sorted = items
     .slice()
@@ -70,7 +69,7 @@ function placeInLanes<T extends { start?: Date; end?: Date }>(items: T[]) {
   return { items: withLane, laneCount: laneEnds.length };
 }
 
-/** Normaliza una tarea: calcula intervalos y detecta hito */
+
 function normalizeTask(d: TaskDoc, phaseStart?: Date, phaseEnd?: Date) {
   const tagMilestone =
     d.isMilestone === true ||
@@ -84,7 +83,7 @@ function normalizeTask(d: TaskDoc, phaseStart?: Date, phaseEnd?: Date) {
   let end: Date | undefined   = e ?? (s ? s : undefined);
   if (!end && start && phaseEnd) end = phaseEnd;
 
-  // Si está marcado como hito, lo convertimos a diamante en un instante representativo
+
   if (tagMilestone) {
     const at =
       e ?? s ?? (phaseStart && phaseEnd
@@ -93,13 +92,12 @@ function normalizeTask(d: TaskDoc, phaseStart?: Date, phaseEnd?: Date) {
     start = at; end = at;
   }
 
-  // Si la duración real es < 1 día, lo tratamos como hito visual
   const isMilestone = !!(start && end && Math.abs(end.getTime() - start.getTime()) < 24 * 60 * 60 * 1000);
 
   return { start, end, isMilestone };
 }
 
-/* --------------------------------- Page ---------------------------------- */
+
 export default function TimelinePage() {
   const router = useRouter();
   const search = useSearchParams();
@@ -120,7 +118,7 @@ export default function TimelinePage() {
 
   const [busy, setBusy] = useState(true);
 
-  // Rol del usuario (para botón de edición)
+ 
   useEffect(() => {
     if (authLoading || !user) return;
     (async () => {
@@ -129,7 +127,6 @@ export default function TimelinePage() {
     })();
   }, [authLoading, user]);
 
-  // Proyectos y selección inicial (URL ?projectId=… respetada)
   useEffect(() => {
     (async () => {
       const ps = await getDocs(collection(db, 'projects'));
@@ -139,10 +136,10 @@ export default function TimelinePage() {
       if (qid && items.some(p => p.id === qid)) setSelectedId(qid);
       else if (items[0]) setSelectedId(items[0].id);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, []);
 
-  // Carga de fases y tareas
+ 
   useEffect(() => {
     (async () => {
       if (!selectedId) return;
@@ -154,11 +151,11 @@ export default function TimelinePage() {
         for (const ph of phSnap.docs) {
           const phData = ph.data() as PhaseDoc;
 
-          // 1) Leer tareas
+   
           const tSnap = await getDocs(collection(db, `projects/${selectedId}/phases/${ph.id}/tasks`));
           const rawTasks = tSnap.docs.map(t => ({ id: t.id, data: t.data() as TaskDoc }));
 
-          // Rango de fase (con fallback a tareas)
+
           let phaseStart = toDate(phData.startDate);
           let phaseEnd   = toDate(phData.endDate);
           if (!phaseStart || !phaseEnd) {
@@ -174,14 +171,14 @@ export default function TimelinePage() {
             phaseEnd   = phaseEnd   ?? max;
           }
 
-          // 2) Normalizar y evitar solapes
+
           const norm = rawTasks.map(({ id, data }) => {
             const n = normalizeTask(data, phaseStart!, phaseEnd!);
             return { id, name: data.name, ...n };
           });
           const { items: placed, laneCount } = placeInLanes(norm);
 
-          // Rango final con las barras ya colocadas
+
           const { min, max } = rangeOf([
             phaseStart, phaseEnd,
             ...placed.map(t => t.start),
@@ -205,7 +202,7 @@ export default function TimelinePage() {
     })();
   }, [selectedId]);
 
-  // Escala global y utilidades de posicionamiento
+
   const { min: start, max: end } = useMemo(() => {
     const ds: Date[] = [];
     rows.forEach(r => {
@@ -228,7 +225,7 @@ export default function TimelinePage() {
     return { left, width };
   };
 
-  // Hoy (marca visual si está dentro del rango)
+
   const today = new Date();
   const showToday = today >= start && today <= end;
   const todayPct = clamp(toPct(today));
@@ -236,7 +233,7 @@ export default function TimelinePage() {
   const projectName = useMemo(() => projects.find(p => p.id === selectedId)?.name ?? '—', [projects, selectedId]);
   const canEdit = role === 'project_manager';
 
-  // Layout
+
   const phaseBaseH = 44;
   const laneH = 16;
   const laneGap = 6;
@@ -244,7 +241,7 @@ export default function TimelinePage() {
 
   return (
   <div className="p-6 space-y-6">
-    {/* Header */}
+
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Cronograma</h1>
@@ -280,7 +277,7 @@ export default function TimelinePage() {
       </div>
     </div>
 
-    {/* Leyenda */}
+
     <div className="flex items-center gap-4 text-xs text-slate-700">
       <div className="flex items-center gap-1">
         <span className="inline-block h-2 w-6 rounded bg-slate-400" aria-hidden /> Fase
@@ -293,9 +290,9 @@ export default function TimelinePage() {
       </div>
     </div>
 
-    {/* Timeline */}
+
     <div className="overflow-x-auto rounded border border-slate-200 bg-slate-50">
-      {/* Cabecera pegajosa con rango y marca de hoy */}
+
       <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-2 text-xs text-slate-600">
         <div className="flex items-center justify-between">
           <div>{fmtShort(start)} — {fmtShort(end)}</div>
@@ -309,7 +306,7 @@ export default function TimelinePage() {
       </div>
 
       <div className="min-w-[980px] p-4">
-        {/* Skeleton de carga */}
+
         {busy && (
           <div className="space-y-4">
             {[0,1].map(i => (
@@ -335,12 +332,12 @@ export default function TimelinePage() {
               </div>
 
               <div className="relative rounded bg-slate-100" style={{ height: totalHeight }}>
-                {/* Rejilla sutil */}
+       
                 <div
                   className="pointer-events-none absolute inset-0 opacity-40 [background-image:repeating-linear-gradient(to_right,transparent_0,transparent_47px,#e5e7eb_48px),repeating-linear-gradient(to_bottom,transparent_0,transparent_15px,#e5e7eb_16px)]"
                   aria-hidden
                 />
-                {/* Marca de hoy */}
+
                 {showToday && (
                   <div
                     className="absolute inset-y-0 w-px bg-rose-500/70"
@@ -349,7 +346,7 @@ export default function TimelinePage() {
                   />
                 )}
 
-                {/* FASE */}
+
                 <div
                   className="absolute top-2 h-4 rounded bg-slate-400"
                   style={{ left: `${phBar.left}%`, width: `${phBar.width}%` }}
@@ -357,7 +354,7 @@ export default function TimelinePage() {
                   aria-label={`Fase ${row.name}`}
                 />
 
-                {/* TAREAS / HITOS */}
+
                 {row.tasks.map(t => {
                   const tb = bar(t.start, t.end);
                   const top = tasksTop + t.lane * (laneH + laneGap);

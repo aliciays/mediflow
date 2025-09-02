@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksThisWeek, setTasksThisWeek] = useState(0);
   const [criticalAlerts, setCriticalAlerts] = useState(0);
-  const [hoverId, setHoverId] = useState<string | null>(null); // UI hover
+  const [hoverId, setHoverId] = useState<string | null>(null); 
   const router = useRouter();
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-4">Resumen</h1>
 
-      {/* Métricos */}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[`${projects.length} PROYECTOS ACTIVOS`, `${tasksThisWeek} TAREAS ESTA SEMANA`, `${criticalAlerts} ALERTAS CRÍTICAS`].map(
           (txt, i) => (
@@ -126,13 +126,13 @@ export default function AdminDashboard() {
                   : "shadow-[0_8px_18px_rgba(2,6,23,.04)]",
               ].join(" ")}
             >
-              {/* Header */}
+    
               <div className="flex justify-between items-start">
                 <h3 className="font-semibold text-[16px]">{p.name}</h3>
                 <span className="text-[14px] text-slate-700">{p.progress}%</span>
               </div>
 
-              {/* Progreso */}
+
               <div className="h-2 mt-2 mb-3 bg-slate-200 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600"
@@ -140,14 +140,14 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* Meta */}
+
               <div className="flex justify-between text-sm text-slate-600">
                 <span>
                   Fase: <strong className="text-slate-900">{p.phase}</strong>
                 </span>
               </div>
 
-              {/* CTA */}
+
               <div className="mt-3">
                 <button
                   onClick={() => router.push(`/dashboard/projects/${p.id}`)}

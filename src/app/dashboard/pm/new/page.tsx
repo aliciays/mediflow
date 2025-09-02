@@ -19,7 +19,7 @@ export default function NewProjectPage() {
   const { user } = useUser();
   const router = useRouter();
 
-  // Proyecto
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [managerId, setManagerId] = useState('');
@@ -27,7 +27,7 @@ export default function NewProjectPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Fase inicial
+
   const [phaseName, setPhaseName] = useState('');
   const [phaseDescription, setPhaseDescription] = useState('');
   const [phaseResponsibleId, setPhaseResponsibleId] = useState('');
@@ -35,7 +35,7 @@ export default function NewProjectPage() {
   const [phaseStartDate, setPhaseStartDate] = useState('');
   const [phaseEndDate, setPhaseEndDate] = useState('');
 
-  // Listado de usuarios
+
   const [managers, setManagers] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
 
@@ -60,7 +60,7 @@ export default function NewProjectPage() {
       return;
     }
 
-    // 1. Crear proyecto
+
     const projectRef = await addDoc(collection(db, 'projects'), {
       name,
       description,
@@ -72,7 +72,7 @@ export default function NewProjectPage() {
       updatedAt: serverTimestamp(),
     });
 
-    // 2. Crear fase inicial
+
     const phaseRef = doc(collection(db, `projects/${projectRef.id}/phases`));
     await setDoc(phaseRef, {
       name: phaseName,
@@ -92,7 +92,7 @@ export default function NewProjectPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Crear nuevo proyecto</h1>
 
-      {/* Datos del proyecto */}
+
       <div className="space-y-4 p-4 bg-white shadow rounded">
         <h2 className="font-semibold text-lg">Datos del proyecto</h2>
         <input
@@ -151,7 +151,7 @@ export default function NewProjectPage() {
         </div>
       </div>
 
-      {/* Datos de la fase */}
+
       <div className="space-y-4 p-4 bg-white shadow rounded">
         <h2 className="font-semibold text-lg">Primera fase</h2>
         <input

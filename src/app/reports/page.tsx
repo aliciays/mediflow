@@ -532,47 +532,34 @@ export default function ReportsPage() {
           </div>
 
           {/* CTA */}
-          <div className="flex flex-col sm:flex-row sm:justify-end">
-            <button
-              onClick={generate}
-              disabled={!selectedProject}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 18px',
-                border: 'none',
-                borderRadius: 12,
-                background: 'linear-gradient(135deg,#f59e0b,#d97706)',
-                color: '#fff',
-                fontWeight: 700,
-                cursor: !selectedProject ? 'not-allowed' : 'pointer',
-                boxShadow: !selectedProject
-                  ? '0 0 0 rgba(0,0,0,0)'
-                  : '0 10px 20px rgba(0,0,0,.15)',
-                opacity: !selectedProject ? 0.6 : 1,
-                transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
-              }}
-              onMouseOver={(e) => {
-                if (!selectedProject) return;
-                e.currentTarget.style.filter = 'brightness(1.08)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 14px 28px rgba(0,0,0,.18)';
-              }}
-              onMouseOut={(e) => {
-                if (!selectedProject) return;
-                e.currentTarget.style.filter = 'brightness(1)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,.15)';
-              }}
-              title={selectedProject ? 'Generar PDF del reporte' : 'Selecciona un proyecto'}
+        <div className="flex flex-col sm:flex-row sm:justify-end">
+          <button
+            onClick={generate}
+            disabled={!selectedProject}
+            className={`
+              inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-white
+              transition-all duration-200
+              ${!selectedProject
+                ? 'cursor-not-allowed opacity-60 bg-gradient-to-r from-slate-400 to-slate-500'
+                : 'bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 shadow-md hover:shadow-lg hover:-translate-y-0.5'}
+            `}
+            title={selectedProject ? 'Generar PDF del reporte' : 'Selecciona un proyecto'}
+          >
+            Generar PDF
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
             >
-              Generar PDF
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z" />
-              </svg>
-            </button>
-          </div>
+              <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z" />
+            </svg>
+          </button>
+        </div>
+
+
+          
         </div>
       </div>
     </RequireRole>

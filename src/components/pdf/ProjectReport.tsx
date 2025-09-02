@@ -1,5 +1,5 @@
 // src/components/pdf/ProjectReport.tsx
-// No 'use client' aquí
+
 
 import React from 'react';
 import {
@@ -11,7 +11,7 @@ import {
   Image,
 } from '@react-pdf/renderer';
 
-// ---------- Tipos ----------
+
 export type ReportSubtask = {
   id: string;
   name: string;
@@ -68,7 +68,7 @@ export type ProjectReportData = {
   phases: ReportPhase[];
   critical: CriticalItem[];
   workload: WorkloadRow[];
-  milestones: MilestoneItem[]; // NUEVO
+  milestones: MilestoneItem[]; 
 };
 
 export type ReportSections = {
@@ -79,7 +79,7 @@ export type ReportSections = {
   costs: boolean;
 };
 
-// ---------- Paleta ----------
+
 const COLORS = {
   ink: '#0f172a',
   sub: '#475569',
@@ -90,7 +90,7 @@ const COLORS = {
   danger: '#ef4444',
 };
 
-// ---------- Estilos ----------
+
 const styles = StyleSheet.create({
   page: {
     paddingTop: 40,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ---------- Subcomponentes ----------
+
 const ProgressBar: React.FC<{ value: number }> = ({ value }) => (
   <View style={{ height: 8, backgroundColor: COLORS.line, borderRadius: 4 }}>
     <View
@@ -164,7 +164,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <Text style={styles.h2}>{children}</Text>
 );
 
-// ---------- Documento principal ----------
+
 const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSections }> = ({
   data,
   sections,
@@ -172,9 +172,9 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Portada */}
+       
         <View style={{ alignItems: 'center', marginBottom: 28 }}>
-          {/* Asegúrate de tener /public/logo.png */}
+    
           <Image src="/logo.png" style={{ width: 72, height: 72, marginBottom: 10 }} />
           <Text style={styles.h1}>Reporte del Proyecto</Text>
           <Text style={{ marginBottom: 2 }}>{data.projectName}</Text>
@@ -182,7 +182,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           <Text>Generado: {data.generatedAt}</Text>
         </View>
 
-        {/* Resumen ejecutivo */}
+       
         {sections.summary && (
           <View style={styles.card}>
             <SectionTitle>Resumen ejecutivo</SectionTitle>
@@ -201,14 +201,14 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           </View>
         )}
 
-        {/* Progreso general */}
+        
         <View style={styles.card}>
           <SectionTitle>Progreso general</SectionTitle>
           <ProgressBar value={data.overallProgress} />
           <Text>{data.overallProgress}%</Text>
         </View>
 
-        {/* Fases */}
+     
         <View style={{ marginBottom: 6 }}>
           <SectionTitle>Fases</SectionTitle>
           {data.phases.length === 0 && (
@@ -222,7 +222,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
               </View>
               <Text style={{ marginBottom: 4 }}>{Math.round(ph.progress || 0)}%</Text>
 
-              {/* (Opcional) lista breve de tareas de la fase */}
+
               {ph.tasks?.length > 0 && (
                 <View style={styles.table}>
                   <View style={styles.trHead}>
@@ -253,7 +253,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           ))}
         </View>
 
-        {/* Alertas críticas */}
+
         {sections.risks && data.critical.length > 0 && (
           <View style={{ marginTop: 8 }}>
             <SectionTitle>Alertas y riesgos</SectionTitle>
@@ -285,7 +285,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           </View>
         )}
 
-        {/* Próximos hitos */}
+
         {sections.milestones && (
           <View style={{ marginTop: 8 }}>
             <SectionTitle>Próximos hitos (30 días)</SectionTitle>
@@ -315,7 +315,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           </View>
         )}
 
-        {/* Workload */}
+
         {sections.workload && data.workload.length > 0 && (
           <View style={{ marginTop: 8 }}>
             <SectionTitle>Carga de trabajo</SectionTitle>
@@ -334,7 +334,7 @@ const ProjectReport: React.FC<{ data: ProjectReportData; sections: ReportSection
           </View>
         )}
 
-        {/* Pie de página */}
+    
         <View fixed style={styles.footer}>
           <Text>{data.projectName}</Text>
           <Text>MediFlow – Confidencial</Text>

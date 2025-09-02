@@ -22,7 +22,7 @@ export default function AlertsDrawer({ open, onClose, alerts, onChanged }: Props
   const router = useRouter();
   const [items, setItems] = useState<Alert[]>(alerts);
 
-  // Bloquear scroll del body y sincronizar lista
+
   useEffect(() => {
     if (!open) return;
     setItems(alerts);
@@ -56,12 +56,12 @@ export default function AlertsDrawer({ open, onClose, alerts, onChanged }: Props
 
   return (
     <div className="fixed inset-0 z-[999] flex">
-      {/* Overlay */}
+
       <div className="flex-1 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
 
-      {/* Panel derecho: más ancho y de alto completo */}
+  
       <div className="h-screen w-[560px] max-w-[85vw] bg-white shadow-2xl border-l flex flex-col">
-        {/* Header del drawer */}
+
         <div className="shrink-0 flex items-center justify-between border-b px-4 py-3">
           <h3 className="font-semibold">Alertas</h3>
           <button onClick={onClose} className="text-slate-600 hover:bg-slate-100 rounded px-2 py-1">
@@ -69,7 +69,7 @@ export default function AlertsDrawer({ open, onClose, alerts, onChanged }: Props
           </button>
         </div>
 
-        {/* Contenido con scroll propio */}
+
         <div className="grow overflow-y-auto p-4">
           {items.length === 0 && (
             <div className="text-sm text-slate-500 px-2 py-8 text-center">Sin alertas abiertas 🎉</div>

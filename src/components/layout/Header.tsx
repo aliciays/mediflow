@@ -9,7 +9,7 @@ import { getAuth, signOut } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 
-// 👇 añade esta import
+
 import AlertsBell from '@/components/alerts/AlertsBell';
 
 export default function Header() {
@@ -21,7 +21,7 @@ export default function Header() {
   const isAuthed = !!user;
   const role = ((user as any)?.role || '') as 'admin'|'project_manager'|'technician'|'viewer'|'';
 
-  // Nombre
+
   const displayName =
     (user as any)?.displayName ||
     (user as any)?.name ||
@@ -30,7 +30,7 @@ export default function Header() {
       : role === 'technician' ? 'Técnico'
       : 'Usuario');
 
-  // Avatar
+
   const avatarSrc =
     (user as any)?.photoURL ||
     (role === 'project_manager' ? '/avatars/laura.jpg'
@@ -39,10 +39,10 @@ export default function Header() {
       : role === 'viewer' ? '/avatars/viewer.jpg'
       : '/avatars/default.jpg');
 
-  // Nav links según rol (solo si hay sesión)
+
   const nav = isAuthed ? getNavByRole(role === '' ? null : role) : [];
 
-  // Dropdown
+
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -64,13 +64,13 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        {/* Logo */}
+    
         <Link href="/" className="flex items-center gap-2">
           <Image src="/mediflow-logo.png" alt="MediFlow" width={28} height={28} className="h-7 w-7" priority />
           <span className="text-sm font-semibold tracking-wide text-slate-900">MediFlow</span>
         </Link>
 
-        {/* Nav (desktop) */}
+       
         {isAuthed && (
           <nav className="hidden md:flex items-center gap-2">
             {nav.map(({ href, label }) => {
@@ -91,11 +91,10 @@ export default function Header() {
           </nav>
         )}
 
-        {/* Derecha: campana + usuario */}
         <div className="relative flex items-center gap-2" ref={ref}>
           {isAuthed && (
-            // 👇 Campana global (muestra alertas de todos los proyectos).
-            // Para campana solo del proyecto actual, usa scope="project" y pasa projectId.
+       
+        
             <AlertsBell scope="global" uid={user?.uid || ''} role={role} />
           )}
 
@@ -134,7 +133,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Nav (móvil) */}
+
       {isAuthed && (
         <div className="md:hidden border-t bg-white">
           <div className="mx-auto flex gap-2 overflow-x-auto px-4 py-2">

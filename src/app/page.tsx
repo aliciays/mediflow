@@ -7,7 +7,7 @@ export default function HomePage() {
 
   return (
     <main className="bg-gray-50 text-slate-800">
-      {/* Hero */}
+
       <section className="container mx-auto px-6 py-20 flex flex-col lg:flex-row items-center gap-10">
         <div className="flex-1 text-center lg:text-left">
           <h1 className="text-5xl font-bold mb-6">
@@ -18,9 +18,9 @@ export default function HomePage() {
             dispositivos médicos. Organiza, asigna y visualiza el progreso con facilidad.
           </p>
 
-          {/* Botones con sistema de variantes */}
+    
           <div className="flex gap-4 justify-center lg:justify-start">
-            {/* Primario azul sólido */}
+  
             <button
               onClick={() => router.push("/login")}
               className="
@@ -39,7 +39,7 @@ export default function HomePage() {
               Iniciar sesión
             </button>
 
-            {/* Secundario outlined azul */}
+     
             <button
               onClick={() => router.push("/about")}
               className="
@@ -102,14 +102,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Final (gradiente azul → turquesa) */}
+
       <section className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">
           Empieza a organizar tus proyectos médicos con MediFlow
         </h2>
         <p className="mb-8 text-lg/7 opacity-90">Tu equipo técnico, más eficiente que nunca.</p>
 
-        {/* Botón claro sobre fondo intenso */}
+
         <button
           onClick={() => router.push("/login")}
           className="

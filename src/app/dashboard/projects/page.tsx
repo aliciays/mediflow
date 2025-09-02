@@ -52,7 +52,7 @@ export default function ProjectsPage() {
       reset()
       router.push('/dashboard')
     } catch (err) {
-      console.error('❌ Error al guardar en Firestore:', err)
+      console.error('Error al guardar en Firestore:', err)
     }
   }
 

@@ -42,7 +42,7 @@ export default function ViewerDashboard() {
               else if (td.status === 'in_progress') { completed += 0.5; tasksInProgress += 1; }
               if (td.dueDate instanceof Timestamp) {
                 const d = td.dueDate.toDate();
-                if (d >= now && d <= in14) msSoon += 1; // “hitos próximos” aproximado
+                if (d >= now && d <= in14) msSoon += 1; 
               }
             });
           }

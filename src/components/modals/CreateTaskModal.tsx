@@ -88,7 +88,7 @@ export default function CreateTaskModal({
 
       const tagSet = new Set<string>();
       items.forEach(u => (u.tags || []).forEach(t => tagSet.add(norm(t))));
-      // No mostramos 'hito' en el selector (se marca con checkbox aparte)
+ 
       tagSet.delete('hito');
       setAvailableTags(Array.from(tagSet).sort());
     })();
@@ -96,7 +96,7 @@ export default function CreateTaskModal({
 
   const canSave = useMemo(() => name.trim().length > 2 && !!phaseId, [name, phaseId]);
 
-  // recomendación en base a selectedTags
+
   const recommendation = useMemo(() => {
     if (selectedTags.length === 0 || users.length === 0) return null;
     const scored = users.map(u => {
@@ -113,14 +113,13 @@ export default function CreateTaskModal({
     return { ...top, max: selectedTags.length };
   }, [selectedTags, users]);
 
-  // autoasignar cuando cambia la selección (si no lo ha hecho manualmente el usuario)
   useEffect(() => {
     if (!manualAssignee && recommendation?.uid) {
       setAssignee(recommendation.uid);
     }
   }, [recommendation, manualAssignee]);
 
-  // Crear fase rápida
+  
   const handleCreatePhase = async () => {
     const n = newPhaseName.trim();
     if (!n) return;
@@ -152,7 +151,7 @@ export default function CreateTaskModal({
     setSaving(true);
     try {
       const due = dueDate ? Timestamp.fromDate(new Date(dueDate)) : null;
-      // guardamos tags seleccionadas + 'hito' si aplica
+
       const tags = [
         ...selectedTags,
         ...(isMilestone ? ['hito'] : []),
@@ -211,7 +210,7 @@ export default function CreateTaskModal({
         </div>
 
         <div className="space-y-4 px-4 py-4">
-          {/* Fase */}
+
           <div>
             <div className="flex items-center justify-between">
               <label className="mb-1 block text-sm text-slate-600">Fase</label>
@@ -267,7 +266,7 @@ export default function CreateTaskModal({
             )}
           </div>
 
-          {/* Nombre */}
+
           <div>
             <label className="mb-1 block text-sm text-slate-600">Nombre</label>
             <input
@@ -278,7 +277,7 @@ export default function CreateTaskModal({
             />
           </div>
 
-          {/* Estado y Prioridad */}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm text-slate-600">Estado</label>
@@ -302,7 +301,6 @@ export default function CreateTaskModal({
             </div>
           </div>
 
-          {/* Competencias requeridas (tags) */}
           <div>
             <label className="mb-1 block text-sm text-slate-600">Competencias requeridas</label>
             <div className="flex flex-wrap gap-2">
@@ -327,7 +325,7 @@ export default function CreateTaskModal({
               )}
             </div>
 
-            {/* Recomendación */}
+
             <div className="mt-2 text-xs text-slate-600">
               {recommendation
                 ? (
@@ -346,7 +344,7 @@ export default function CreateTaskModal({
             </div>
           </div>
 
-          {/* Responsable */}
+
           <div>
             <label className="mb-1 block text-sm text-slate-600">Responsable</label>
             <select
@@ -363,7 +361,7 @@ export default function CreateTaskModal({
             </select>
           </div>
 
-          {/* Fecha límite */}
+ 
           <div>
             <label className="mb-1 block text-sm text-slate-600">Fecha límite</label>
             <input
@@ -374,7 +372,7 @@ export default function CreateTaskModal({
             />
           </div>
 
-          {/* Hito */}
+    
           <div className="flex items-center gap-2">
             <input
               id="isMilestone"

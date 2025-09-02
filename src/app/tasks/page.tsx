@@ -21,7 +21,7 @@ type TaskItem = {
   projectId: string;
   projectName: string;
   phaseId: string;
-  taskId: string;               // id de la tarea padre (para subtareas también)
+  taskId: string;               
   assignedTo?: string;
   dueDate?: Date;
   status: 'todo' | 'in_progress' | 'completed';
@@ -35,7 +35,7 @@ type DueFilter = 'all' | 'week' | 'overdue' | 'no_date';
 const fmt = (d?: Date) =>
   d ? d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha';
 
-// Clasificación de urgencia para color y orden visual
+
 function getDueFlag(d?: Date): 'overdue' | 'week' | 'future' | 'no_date' {
   if (!d) return 'no_date';
   const now = new Date();
@@ -54,16 +54,15 @@ export default function PMTasksPage() {
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [nameCache, setNameCache] = useState<Map<string, string>>(new Map());
 
-  // Filtros
+  
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(['todo', 'in_progress']);
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('all'); // uid | 'unassigned' | 'all'
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all'); 
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'priority'>('dateAsc');
   const [groupBy, setGroupBy] = useState<GroupMode>('project');
 
-  // Helpers
   const getUserName = async (uid?: string) => {
     if (!uid) return 'Sin asignar';
     if (nameCache.has(uid)) return nameCache.get(uid)!;
@@ -75,7 +74,7 @@ export default function PMTasksPage() {
     return name;
   };
 
-  // Cargar datos
+
   useEffect(() => {
     if (!user) return;
 
@@ -130,7 +129,7 @@ export default function PMTasksPage() {
         }
       }
 
-      // Pre-cargar nombres de responsables
+
       const uids = new Set(allTasks.map((t) => t.assignedTo).filter(Boolean) as string[]);
       await Promise.all([...uids].map((uid) => getUserName(uid)));
 
@@ -141,30 +140,29 @@ export default function PMTasksPage() {
     loadAll();
   }, [user]);
 
-  // Opciones de responsables (para filtro)
   const assigneeOptions = useMemo(() => {
     const uids = new Set(tasks.map((t) => t.assignedTo || 'unassigned'));
     const arr = [...uids].map((uid) => ({
       value: uid as string,
       label: uid === 'unassigned' ? 'Sin asignar' : nameCache.get(uid as string) || 'Cargando…',
     }));
-    // Orden alfabético por label
+   
     return arr.sort((a, b) => a.label.localeCompare(b.label));
   }, [tasks, nameCache]);
 
-  // Filtrado + ordenación
-  const filtered = useMemo(() => {
-    let list = tasks.filter((t) => t.status !== 'completed'); // fuera los completados
 
-    // Estado
+  const filtered = useMemo(() => {
+    let list = tasks.filter((t) => t.status !== 'completed'); 
+
+
     list = list.filter((t) => t.status === 'todo' || t.status === 'in_progress' ? statusFilter.includes(t.status) : false);
 
-    // Proyecto
+
     if (selectedProject !== 'all') {
       list = list.filter((t) => t.projectId === selectedProject);
     }
 
-    // Fecha (due)
+
     const now = new Date();
     const weekAhead = new Date();
     weekAhead.setDate(now.getDate() + 7);
@@ -177,26 +175,25 @@ export default function PMTasksPage() {
       list = list.filter((t) => !t.dueDate);
     }
 
-    // Responsable
+
     if (assigneeFilter !== 'all') {
       if (assigneeFilter === 'unassigned') list = list.filter((t) => !t.assignedTo);
       else list = list.filter((t) => t.assignedTo === assigneeFilter);
     }
 
-    // Búsqueda
+
     if (q.trim()) {
       const needle = q.toLowerCase();
       list = list.filter((t) => t.name.toLowerCase().includes(needle) || t.projectName.toLowerCase().includes(needle));
     }
 
-    // Orden
     const prioRank = { high: 0, medium: 1, low: 2 } as const;
     list.sort((a, b) => {
       if (sortBy === 'priority') {
         const pa = a.priority ?? 'medium';
         const pb = b.priority ?? 'medium';
         if (prioRank[pa] !== prioRank[pb]) return prioRank[pa] - prioRank[pb];
-        // desempatar por fecha asc
+    
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
         return a.dueDate.getTime() - b.dueDate.getTime();
@@ -215,7 +212,7 @@ export default function PMTasksPage() {
     return list;
   }, [tasks, statusFilter, selectedProject, dueFilter, assigneeFilter, q, sortBy]);
 
-  // Agrupación
+
   const grouped = useMemo(() => {
     const map = new Map<string, TaskItem[]>();
     const keyFn =
@@ -229,7 +226,7 @@ export default function PMTasksPage() {
       map.get(key)!.push(t);
     }
 
-    // Transformar a array ordenado por título de grupo
+
     const arr = [...map.entries()].map(([k, items]) => {
       const [id, label] = k.split(':::');
       return { id, label, items };
@@ -294,7 +291,7 @@ export default function PMTasksPage() {
       <div className="flex items-end gap-3 flex-wrap">
         <h1 className="text-2xl font-bold">Todas las tareas</h1>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          {/* Proyecto */}
+
           <select
             value={selectedProject}
             onChange={(e) => setSelectedProject(e.target.value)}
@@ -309,7 +306,7 @@ export default function PMTasksPage() {
             ))}
           </select>
 
-          {/* Responsable */}
+
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
@@ -324,7 +321,7 @@ export default function PMTasksPage() {
             ))}
           </select>
 
-          {/* Fecha */}
+
           <select
             value={dueFilter}
             onChange={(e) => setDueFilter(e.target.value as DueFilter)}
@@ -337,7 +334,7 @@ export default function PMTasksPage() {
             <option value="no_date">Sin fecha</option>
           </select>
 
-          {/* Estado (multi) */}
+     
           <div className="flex items-center gap-1 text-sm">
             <label className="px-2 py-1 rounded border cursor-pointer select-none">
               <input
@@ -359,7 +356,7 @@ export default function PMTasksPage() {
             </label>
           </div>
 
-          {/* Orden */}
+
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -371,7 +368,6 @@ export default function PMTasksPage() {
             <option value="priority">Prioridad</option>
           </select>
 
-          {/* Agrupar por */}
           <div className="flex rounded border overflow-hidden text-sm">
             <button
               className={`px-3 py-2 ${groupBy === 'project' ? 'bg-slate-800 text-white' : 'bg-white'}`}
@@ -389,7 +385,7 @@ export default function PMTasksPage() {
             </button>
           </div>
 
-          {/* Buscar */}
+
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -403,7 +399,7 @@ export default function PMTasksPage() {
         </div>
       </div>
 
-      {/* Leyenda de urgencia */}
+
       <div className="flex items-center gap-4 text-xs text-slate-600">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-500" /> Atrasada</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-500" /> Próxima (7d)</span>
@@ -411,7 +407,7 @@ export default function PMTasksPage() {
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-sky-500" /> Futuro</span>
       </div>
 
-      {/* Lista agrupada */}
+
       <div className="space-y-4">
         {grouped.map((group) => (
           <GroupBlock

@@ -19,7 +19,7 @@ export default function RequireRole({ allowed, children }: Props) {
     );
   }
 
-  // No logueado
+
   if (!user) {
     return (
       <div className="p-4 text-red-600">
@@ -28,7 +28,7 @@ export default function RequireRole({ allowed, children }: Props) {
     );
   }
 
-  // Rol no permitido
+
   if (!allowed.includes(user.role)) {
     return (
       <div className="p-4 text-red-600">

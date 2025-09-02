@@ -48,7 +48,7 @@ export default function SettingsPage() {
         <p><strong>Rol:</strong> {user.role}</p>
       </section>
 
-      {/* Preferencias */}
+
       <section className="bg-white p-4 shadow rounded space-y-4">
         <h2 className="font-semibold text-lg">Preferencias</h2>
         <div>
@@ -71,7 +71,6 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Competencias (solo técnico) */}
       {user.role === 'technician' && (
         <section className="bg-white p-4 shadow rounded space-y-2">
           <h2 className="font-semibold text-lg">Competencias</h2>

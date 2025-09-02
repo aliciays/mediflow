@@ -16,7 +16,6 @@ import {
   LabelList,
 } from 'recharts';
 
-// ------------ Tipos ------------
 type TaskDoc = {
   name: string;
   status?: 'todo'|'in_progress'|'completed';
@@ -28,9 +27,11 @@ type KPI = {
   projectId: string;
   projectName: string;
   progress: number;
-  overdueTasks: number;   // Atrasadas  (rojo)
-  dueSoonTasks: number;   // Próximas   (naranja)
-  workload: Record<string, number>; // uid -> count
+  overdueTasks: number;   
+  dueSoonTasks: number;   
+  unassigned: number;     
+  highCritical: number;   
+  workload: Record<string, number>; 
 };
 
 type CriticalRow = {
@@ -39,12 +40,13 @@ type CriticalRow = {
   itemType: 'Tarea' | 'Subtarea';
   name: string;
   assignedToName: string;
+  assignedTo?: string;
   dueDate: Date;
-  status: string;
-  priority?: string;
+  status: 'Atrasada' | 'Próxima (7d)';
+  priority?: 'low'|'medium'|'high';
 };
 
-// ------------ Utils ------------
+
 const fmtDate = (d: Date) =>
   d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -56,9 +58,7 @@ const withinRange = (ts: Timestamp | undefined, days: number | 'all') => {
   return when >= since;
 };
 
-const truncate = (s: string, len = 14) => (s.length > len ? s.slice(0, len - 1) + '…' : s);
 
-// Etiqueta de valor visible solo si > 0
 const ValueLabel = (props: any) => {
   const { x, y, value } = props;
   if (!value) return null;
@@ -69,19 +69,36 @@ const ValueLabel = (props: any) => {
   );
 };
 
-// Leyenda personalizada
+
+const MultiLineTick = (props: any) => {
+  const { x, y, payload } = props;
+  const words = String(payload.value).split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const w of words) {
+    const test = (line ? line + ' ' : '') + w;
+    if (test.length > 14) {
+      if (line) lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  const dyStart = -4 * (lines.length - 1);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text textAnchor="middle" fill="#334155" fontSize={12}>
+        {lines.map((ln, i) => (
+          <tspan key={i} x={0} dy={i === 0 ? dyStart : 14}>{ln}</tspan>
+        ))}
+      </text>
+    </g>
+  );
+};
+
 const LegendChip: React.FC<{ color: string }> = ({ color }) => (
-  <span
-    style={{
-      display: 'inline-block',
-      width: 10,
-      height: 10,
-      borderRadius: 2,
-      background: color,
-      marginRight: 6,
-      verticalAlign: 'middle',
-    }}
-  />
+  <span className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{ background: color }} />
 );
 const CriticalLegend = () => (
   <div className="flex gap-6 text-sm text-slate-700">
@@ -90,25 +107,25 @@ const CriticalLegend = () => (
   </div>
 );
 
-// ------------ Página ------------
+
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [projectOptions, setProjectOptions] = useState<{id:string; name:string}[]>([]);
   const [userNameMap, setUserNameMap] = useState<Record<string,string>>({});
 
-  // Filtros UI
+
   const [selectedProject, setSelectedProject] = useState<'all'|string>('all');
   const [rangeDays, setRangeDays] = useState<30|60|90|'all'>(30);
 
-  // Tabla de críticas
+
   const [criticalRows, setCriticalRows] = useState<CriticalRow[]>([]);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      // Users
+
       const usersSnap = await getDocs(collection(db, 'users'));
       const uMap: Record<string,string> = {};
       usersSnap.forEach(u => {
@@ -117,7 +134,7 @@ export default function AnalyticsPage() {
       });
       setUserNameMap(uMap);
 
-      // Proyectos
+
       const projSnap = await getDocs(collection(db, 'projects'));
       const projects = projSnap.docs.map(p => ({ id: p.id, name: (p.data() as any).name || p.id }));
       setProjectOptions(projects);
@@ -139,6 +156,8 @@ export default function AnalyticsPage() {
         let completed = 0;
         let overdue = 0;
         let dueSoon = 0;
+        let unassigned = 0;
+        let highCritical = 0;
         const workload: Record<string, number> = {};
 
         for (const ph of phasesSnap.docs) {
@@ -150,29 +169,37 @@ export default function AnalyticsPage() {
 
             const inRange = withinRange(tData.dueDate, rangeDays);
 
+            if (tData.assignedTo == null && tData.status !== 'completed') {
+              unassigned++;
+            }
+
             if (tData.dueDate instanceof Timestamp) {
               const due = tData.dueDate.toDate();
               const isCompleted = tData.status === 'completed';
               if (!isCompleted && due < now) {
                 overdue++;
+                if (tData.priority === 'high') highCritical++;
                 rows.push({
                   projectId: proj.id,
                   projectName,
                   itemType: 'Tarea',
                   name: tData.name,
                   assignedToName: tData.assignedTo ? (uMap[tData.assignedTo] || tData.assignedTo) : 'Sin asignar',
+                  assignedTo: tData.assignedTo,
                   dueDate: due,
                   status: 'Atrasada',
                   priority: tData.priority,
                 });
               } else if (!isCompleted && due >= now && due <= weekAhead) {
                 dueSoon++;
+                if (tData.priority === 'high') highCritical++;
                 rows.push({
                   projectId: proj.id,
                   projectName,
                   itemType: 'Tarea',
                   name: tData.name,
                   assignedToName: tData.assignedTo ? (uMap[tData.assignedTo] || tData.assignedTo) : 'Sin asignar',
+                  assignedTo: tData.assignedTo,
                   dueDate: due,
                   status: 'Próxima (7d)',
                   priority: tData.priority,
@@ -184,33 +211,42 @@ export default function AnalyticsPage() {
               workload[tData.assignedTo] = (workload[tData.assignedTo] || 0) + 1;
             }
 
-            // Subtareas
+
             const subSnap = await getDocs(collection(db, `projects/${proj.id}/phases/${ph.id}/tasks/${t.id}/subtasks`));
             for (const s of subSnap.docs) {
               const sd = s.data() as any;
+
+              if (sd?.assignedTo == null && sd?.status !== 'completed') {
+                unassigned++;
+              }
+
               if (sd?.dueDate instanceof Timestamp) {
                 const due = sd.dueDate.toDate();
                 const isCompleted = sd.status === 'completed';
                 if (!isCompleted && due < now) {
                   overdue++;
+                  if (sd.priority === 'high') highCritical++;
                   rows.push({
                     projectId: proj.id,
                     projectName,
                     itemType: 'Subtarea',
                     name: sd.name,
                     assignedToName: sd.assignedTo ? (uMap[sd.assignedTo] || sd.assignedTo) : 'Sin asignar',
+                    assignedTo: sd.assignedTo,
                     dueDate: due,
                     status: 'Atrasada',
                     priority: sd.priority,
                   });
                 } else if (!isCompleted && due >= now && due <= weekAhead) {
                   dueSoon++;
+                  if (sd.priority === 'high') highCritical++;
                   rows.push({
                     projectId: proj.id,
                     projectName,
                     itemType: 'Subtarea',
                     name: sd.name,
                     assignedToName: sd.assignedTo ? (uMap[sd.assignedTo] || sd.assignedTo) : 'Sin asignar',
+                    assignedTo: sd.assignedTo,
                     dueDate: due,
                     status: 'Próxima (7d)',
                     priority: sd.priority,
@@ -230,25 +266,26 @@ export default function AnalyticsPage() {
           progress: totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0,
           overdueTasks: overdue,
           dueSoonTasks: dueSoon,
+          unassigned,
+          highCritical,
           workload,
         });
       }
-
-      setKpis(allKPIs);
 
       rows.sort((a, b) => {
         if (a.status !== b.status) return a.status === 'Atrasada' ? -1 : 1;
         return a.dueDate.getTime() - b.dueDate.getTime();
       });
-      setCriticalRows(rows);
 
+      setKpis(allKPIs);
+      setCriticalRows(rows);
       setLoading(false);
     };
 
     load();
   }, [rangeDays]);
 
-  // Filtros
+
   const filteredKPIs = useMemo(() => {
     if (selectedProject === 'all') return kpis;
     return kpis.filter(k => k.projectId === selectedProject);
@@ -259,6 +296,20 @@ export default function AnalyticsPage() {
     if (!list.length) return 0;
     const avg = list.reduce((acc, p) => acc + p.progress, 0) / list.length;
     return Math.round(avg);
+  }, [filteredKPIs]);
+
+  const aggregated = useMemo(() => {
+    const sum = filteredKPIs.reduce(
+      (acc, p) => {
+        acc.overdue += p.overdueTasks;
+        acc.dueSoon += p.dueSoonTasks;
+        acc.unassigned += p.unassigned;
+        acc.highCritical += p.highCritical;
+        return acc;
+      },
+      { overdue: 0, dueSoon: 0, unassigned: 0, highCritical: 0 }
+    );
+    return sum;
   }, [filteredKPIs]);
 
   const workloadData = useMemo(() => {
@@ -281,7 +332,15 @@ export default function AnalyticsPage() {
     return criticalRows.filter(r => r.projectId === selectedProject);
   }, [criticalRows, selectedProject]);
 
-  // CSV
+  const avgOverdueDays = useMemo(() => {
+    const now = Date.now();
+    const overdue = filteredRows.filter(r => r.status === 'Atrasada');
+    if (!overdue.length) return 0;
+    const days = overdue.reduce((acc, r) => acc + Math.max(0, (now - r.dueDate.getTime()) / 86400000), 0) / overdue.length;
+    return Math.round(days);
+  }, [filteredRows]);
+
+
   const exportCSV = () => {
     const header = ['Proyecto','Tipo','Nombre','Responsable','Fecha límite','Estado','Prioridad'];
     const lines = [header.join(',')];
@@ -308,7 +367,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="p-6 space-y-6">
-        <div className="h-8 w-40 bg-slate-200 rounded animate-pulse" />
+        <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
         <div className="h-24 bg-white border border-slate-200 rounded-2xl animate-pulse" />
         <div className="h-80 bg-white border border-slate-200 rounded-2xl animate-pulse" />
         <div className="h-72 bg-white border border-slate-200 rounded-2xl animate-pulse" />
@@ -320,14 +379,16 @@ export default function AnalyticsPage() {
   return (
     <RequireRole allowed={['project_manager']}>
       <div className="p-6 space-y-6">
-        {/* Header + filtros */}
         <div className="flex items-end gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold">Analytics</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Analytics del proyecto</h1>
+            <p className="text-sm text-slate-600">Vista ejecutiva con foco en riesgos, carga y progreso</p>
+          </div>
 
           <div className="ml-auto flex gap-3">
             <div className="relative">
               <select
-                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                 value={selectedProject}
                 onChange={(e)=>setSelectedProject(e.target.value as any)}
               >
@@ -341,7 +402,7 @@ export default function AnalyticsPage() {
 
             <div className="relative">
               <select
-                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                 value={String(rangeDays)}
                 onChange={(e)=>{
                   const v = e.target.value === 'all' ? 'all' : Number(e.target.value) as 30|60|90;
@@ -358,101 +419,102 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* KPI principal */}
-        <div
-          className="bg-white border border-slate-200 rounded-2xl p-5"
-          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
-        >
-          <h2 className="text-sm font-medium text-slate-700 mb-1">Progreso medio (selección)</h2>
-          <div className="flex items-baseline gap-3">
-            <span className="text-4xl font-extrabold text-slate-900">{globalProgress}%</span>
-            <span className="text-slate-500 text-sm">calculado sobre proyectos filtrados</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-slate-600">Progreso medio</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-slate-900">{globalProgress}%</span>
+              <span className="text-xs text-slate-500">sobre selección</span>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-slate-600">Atrasadas</p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-3xl font-bold text-rose-600">{aggregated.overdue}</span>
+              <span className="text-xs text-slate-500">tareas</span>
+            </div>
+            {avgOverdueDays > 0 && (
+              <p className="text-xs text-slate-500 mt-1">Media retraso: <span className="font-medium text-slate-700">{avgOverdueDays} días</span></p>
+            )}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-slate-600">Próximas (7d)</p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-3xl font-bold text-amber-600">{aggregated.dueSoon}</span>
+              <span className="text-xs text-slate-500">tareas</span>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-slate-600">Riesgo inmediato</p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-3xl font-bold text-indigo-700">{aggregated.highCritical}</span>
+              <span className="text-xs text-slate-500">alta prioridad (overdue/7d)</span>
+            </div>
+            {aggregated.unassigned > 0 && (
+              <p className="text-xs text-slate-500 mt-1">Sin asignar: <span className="font-medium text-slate-700">{aggregated.unassigned}</span></p>
+            )}
           </div>
         </div>
 
-        {/* Críticas por proyecto */}
-        <div
-          className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3"
-          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-slate-800">
-              Tareas críticas por proyecto (atrasadas y próximas a 7 días)
-            </h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-slate-900">Tareas críticas por proyecto</h2>
             <CriticalLegend />
           </div>
-
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={340}>
             <BarChart
-              data={filteredKPIs.map(k => ({ ...k, shortName: truncate(k.projectName) }))}
-              margin={{ top: 10, right: 20, bottom: 70, left: 0 }}
+              data={filteredKPIs.map(k => ({ ...k }))}
+              margin={{ top: 10, right: 20, bottom: 30, left: 0 }}
               barGap={6}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="shortName" interval={0} angle={-28} textAnchor="end" height={70} />
+              <XAxis dataKey="projectName" interval={0} height={48} tick={<MultiLineTick />} />
               <YAxis allowDecimals={false}/>
               <Tooltip
                 formatter={(v: any, n: string) => [v, n === 'overdueTasks' ? 'Atrasadas' : 'Próximas (7d)']}
                 labelFormatter={(_, payload) => `Proyecto: ${payload?.[0]?.payload?.projectName ?? ''}`}
               />
-              <Legend content={() => null} />
-              <Bar dataKey="overdueTasks" fill="#ef4444">
+              <Legend />
+              <Bar dataKey="overdueTasks" name="Atrasadas" fill="#ef4444" radius={[6,6,0,0]}>
                 <LabelList content={<ValueLabel />} />
               </Bar>
-              <Bar dataKey="dueSoonTasks" fill="#f59e0b">
+              <Bar dataKey="dueSoonTasks" name="Próximas (7d)" fill="#f59e0b" radius={[6,6,0,0]}>
                 <LabelList content={<ValueLabel />} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Workload */}
-        <div
-          className="bg-white border border-slate-200 rounded-2xl p-5"
-          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
-        >
-          <h2 className="font-semibold text-slate-800 mb-4">Workload por técnico</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={workloadData} margin={{ top: 10, right: 20, bottom: 60, left: 0 }} barSize={28}>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <h2 className="font-semibold text-slate-900 mb-3">Workload por técnico (rango seleccionado)</h2>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={workloadData} margin={{ top: 10, right: 20, bottom: 30, left: 0 }} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" interval={0} angle={-25} textAnchor="end" height={70}/>
+              <XAxis dataKey="name" interval={0} height={48} tick={<MultiLineTick />} />
               <YAxis allowDecimals={false}/>
               <Tooltip formatter={(v: any) => [v, 'Tareas activas']} labelFormatter={(label) => `Técnico: ${label}`} />
-              <Bar dataKey="count" name="Tareas activas" fill="#60a5fa">
+              <Bar dataKey="count" name="Tareas activas" fill="#3b82f6" radius={[6,6,0,0]}>
                 <LabelList content={<ValueLabel />} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Tabla */}
-        <div
-          className="bg-white border border-slate-200 rounded-2xl p-5"
-          style={{ boxShadow: '0 8px 18px rgba(2,6,23,.04)' }}
-        >
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-slate-800">Tareas críticas (lista detallada)</h2>
+            <h2 className="font-semibold text-slate-900">Tareas críticas (detalle)</h2>
             <button
               onClick={exportCSV}
               title="Exportar a CSV"
-              style={{
-                padding: '10px 14px',
-                borderRadius: 12,
-                background: 'linear-gradient(135deg,#0f172a,#1f2937)',
-                color: '#fff',
-                fontWeight: 600,
-                boxShadow: '0 6px 16px rgba(2,6,23,.18)',
-                transition: 'transform .15s ease, filter .15s ease',
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.05)'; e.currentTarget.style.transform='translateY(-1px)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform='translateY(0)'; }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 text-white font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
               Exportar CSV
             </button>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-white">
                 <tr className="text-left border-b">
                   <th className="py-2 pr-4">Proyecto</th>
                   <th className="py-2 pr-4">Tipo</th>
@@ -472,21 +534,57 @@ export default function AnalyticsPage() {
                   </tr>
                 )}
                 {filteredRows.map((r, idx) => (
-                  <tr key={idx} className="border-b">
+                  <tr key={idx} className="border-b hover:bg-slate-50/60">
                     <td className="py-2 pr-4">{r.projectName}</td>
                     <td className="py-2 pr-4">{r.itemType}</td>
                     <td className="py-2 pr-4">{r.name}</td>
                     <td className="py-2 pr-4">{r.assignedToName}</td>
                     <td className="py-2 pr-4">{fmtDate(r.dueDate)}</td>
-                    <td className={`py-2 pr-4 ${r.status === 'Atrasada' ? 'text-red-600' : 'text-amber-600'}`}>
-                      {r.status}
+                    <td className="py-2 pr-4">
+                      <span
+                        className={
+                          r.status === 'Atrasada'
+                            ? 'inline-flex items-center rounded-md bg-rose-100 text-rose-700 px-2 py-0.5'
+                            : 'inline-flex items-center rounded-md bg-amber-100 text-amber-700 px-2 py-0.5'
+                        }
+                      >
+                        {r.status}
+                      </span>
                     </td>
-                    <td className="py-2 pr-4">{r.priority || '-'}</td>
+                    <td className="py-2 pr-4">
+                      {r.priority ? (
+                        <span
+                          className={
+                            r.priority === 'high'
+                              ? 'inline-flex items-center rounded-md bg-violet-100 text-violet-700 px-2 py-0.5'
+                              : r.priority === 'medium'
+                              ? 'inline-flex items-center rounded-md bg-sky-100 text-sky-700 px-2 py-0.5'
+                              : 'inline-flex items-center rounded-md bg-slate-100 text-slate-700 px-2 py-0.5'
+                          }
+                        >
+                          {r.priority === 'high' ? 'Alta' : r.priority === 'medium' ? 'Media' : 'Baja'}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {workloadData.length > 0 && (
+            <div className="mt-3 text-xs text-slate-500">
+              Top carga:{" "}
+              {workloadData.slice(0, 3).map((w, i) => (
+                <span key={w.name} className="mr-2">
+                  <span className="font-medium text-slate-700">{w.name}</span> ({w.count})
+                  {i < Math.min(2, workloadData.length - 1) ? ',' : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </RequireRole>

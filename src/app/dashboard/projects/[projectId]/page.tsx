@@ -11,13 +11,13 @@ import {
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import SubtaskModal from '@/components/subtasks/SubtaskModal';
 
-// ===== Tipos =====
+
 type Subtask = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; assignedTo?: string };
 type Task = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; assignedTo?: string; subtasks: Subtask[]; progress: number };
 type Phase = { id: string; name: string; status?: 'todo'|'in_progress'|'completed'; responsibleId?: string; tasks: Task[]; progress: number };
 type Project = { id: string; name: string; managerId?: string; progress: number };
 
-// ===== Helpers de progreso =====
+
 const statusWeight = (s?: string) => {
   if (!s) return 0;
   const v = s.toLowerCase();
@@ -40,7 +40,7 @@ const recomputeProjectProgress = (phases: Phase[]) => {
   return Math.round(avg);
 };
 
-// --- Etiquetas y estilos de estado en español (solo lectura) ---
+
 const statusLabelEs = (s?: string) =>
   s === 'completed' ? 'Completada' :
   s === 'in_progress' ? 'En progreso' : 'Pendiente';
@@ -50,7 +50,7 @@ const statusBadgeClass = (s?: string) =>
   s === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
   'bg-slate-100 text-slate-700';
 
-// Progreso de una tarea a partir de subtareas
+
 const taskProgressFromSubtasks = (subs: Subtask[], taskStatus?: string) => {
   const fromTask = Math.round(statusWeight(taskStatus) * 100);
   if (subs.length === 0) return fromTask;
@@ -72,7 +72,7 @@ export default function ProjectDetailPage() {
   const [nameCache, setNameCache] = useState<Map<string, string>>(new Map());
   const [busy, setBusy] = useState(true);
 
-  // UI: modales
+
   const [showCreate, setShowCreate] = useState<boolean>(false);
   const [openSubtask, setOpenSubtask] = useState(false);
   const [ctx, setCtx] = useState<{
@@ -81,7 +81,7 @@ export default function ProjectDetailPage() {
     subtask?: { id?: string; name?: string; status?: string; assignedTo?: string; dueDate?: string };
   } | null>(null);
 
-  // ------- Cargar rol del usuario actual desde Firestore -------
+
   useEffect(() => {
     if (loading) return;
     (async () => {
@@ -99,7 +99,7 @@ export default function ProjectDetailPage() {
     })();
   }, [loading, user, router]);
 
-  // ------- Resolver displayName/email por UID con caché -------
+
   const getUserName = async (uid?: string | null) => {
     if (!uid) return 'Sin asignar';
     if (nameCache.has(uid)) return nameCache.get(uid)!;
@@ -109,12 +109,11 @@ export default function ProjectDetailPage() {
     return name;
   };
 
-  // ------- Cargar proyecto + fases + tareas + subtareas -------
   const loadAll = async () => {
     if (!projectId) return;
     setBusy(true);
     try {
-      // Proyecto
+    
       const pRef = doc(db, 'projects', projectId);
       const pSnap = await getDoc(pRef);
       if (!pSnap.exists()) {
@@ -129,25 +128,23 @@ export default function ProjectDetailPage() {
         progress: 0,
       };
 
-      // Fases
+ 
       const phSnap = await getDocs(collection(db, `projects/${projectId}/phases`));
       const phaseList: Phase[] = [];
 
       for (const ph of phSnap.docs) {
         const phData = ph.data();
 
-        // Tareas
+
         const tSnap = await getDocs(collection(db, `projects/${projectId}/phases/${ph.id}/tasks`));
         const taskList: Task[] = [];
 
         for (const t of tSnap.docs) {
           const tData = t.data();
 
-          // Subtareas
           const stSnap = await getDocs(collection(db, `projects/${projectId}/phases/${ph.id}/tasks/${t.id}/subtasks`));
           const subList: Subtask[] = stSnap.docs.map(s => ({ id: s.id, ...(s.data() as any) }));
 
-          // Progreso de la tarea
           const tProgress = taskProgressFromSubtasks(subList, tData.status);
 
           taskList.push({
@@ -160,7 +157,7 @@ export default function ProjectDetailPage() {
           });
         }
 
-        // Progreso de la fase
+
         const phaseProgress =
           taskList.length > 0
             ? Math.round(taskList.reduce((acc, t) => acc + (t.progress || 0), 0) / taskList.length)
@@ -176,7 +173,7 @@ export default function ProjectDetailPage() {
         });
       }
 
-      // Progreso del proyecto
+
       const projectProgress =
         phaseList.length > 0
           ? Math.round(phaseList.reduce((acc, ph) => acc + (ph.progress || 0), 0) / phaseList.length)
@@ -184,7 +181,6 @@ export default function ProjectDetailPage() {
 
       setProject({ ...baseProject, progress: projectProgress });
 
-      // Pre-resolver nombres
       const prefetchUIDs = new Set<string>();
       if (baseProject.managerId) prefetchUIDs.add(baseProject.managerId);
       phaseList.forEach(ph => { if (ph.responsibleId) prefetchUIDs.add(ph.responsibleId); });
@@ -196,12 +192,12 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Carga inicial / recargas
+
   useEffect(() => {
     loadAll();
   }, [projectId]);
 
-  // permisos
+
   const canEdit = useMemo(() => role === 'project_manager', [role]);
   const canAddSubtask = useMemo(() => role === 'admin' || role === 'technician' || role === 'project_manager', [role]);
   const canSee = useMemo(() => role === 'admin' || role === 'project_manager' || role === 'technician', [role]);
@@ -210,7 +206,7 @@ export default function ProjectDetailPage() {
 
   const managerName = nameCache.get(project.managerId || '') || 'Sin asignar';
 
-  // ===== Acciones rápidas de subtareas =====
+
   const deleteSubtask = async (phaseId: string, taskId: string, subId: string) => {
     await deleteDoc(doc(db, `projects/${projectId}/phases/${phaseId}/tasks/${taskId}/subtasks/${subId}`));
     await loadAll();
@@ -218,89 +214,62 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Encabezado */}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="text-sm text-gray-500">Responsable: {managerName}</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '24px', alignItems: 'center' }}>
-          {/* Crear tarea (usa setShowCreate si lo tienes, si no deja el router.push) */}
+        <div className="flex gap-3 mt-6 items-center">
+
           <button
-            onClick={() => (typeof setShowCreate === 'function' ? setShowCreate(true) : router.push('/dashboard/pm/new'))}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              height: '48px',
-              padding: '0 22px',
-              minWidth: '170px',
-              border: 'none',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', // azul
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '16px',
-              letterSpacing: '.1px',
-              cursor: 'pointer',
-              boxShadow: '0 10px 22px rgba(37,99,235,.35)',
-              transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.filter = 'brightness(1.07)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 14px 26px rgba(37,99,235,.40)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.filter = 'brightness(1)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 22px rgba(37,99,235,.35)';
-            }}
+            onClick={() =>
+              typeof setShowCreate === 'function'
+                ? setShowCreate(true)
+                : router.push('/dashboard/pm/new')
+            }
+            className="
+              inline-flex items-center gap-2
+              h-12 min-w-[170px] px-6 rounded-xl
+              bg-gradient-to-r from-sky-600 to-blue-700
+              text-white text-base font-semibold tracking-tight
+              shadow-md hover:shadow-lg
+              transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105
+              focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2
+            "
           >
-            {/* icono + */}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
               <path d="M11 5a1 1 0 012 0v6h6a1 1 0 010 2h-6v6a1 1 0 01-2 0v-6H5a1 1 0 010-2h6V5z" />
             </svg>
             <span>Crear tarea</span>
           </button>
 
-          {/* Cronograma (más ancho) */}
+
           <button
             onClick={() => router.push('/dashboard/timeline')}
-            style={{
-              height: '48px',
-              padding: '0 26px',         // ← más ancho
-              minWidth: '180px',         // ← ancho mínimo para que no quede “justo”
-              border: 'none',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg,#4f46e5,#4338ca)', // morado
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '16px',
-              letterSpacing: '.1px',
-              cursor: 'pointer',
-              boxShadow: '0 10px 22px rgba(79,70,229,.30)',
-              transition: 'transform .15s ease, filter .15s ease, box-shadow .15s ease',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.filter = 'brightness(1.07)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 14px 26px rgba(79,70,229,.38)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.filter = 'brightness(1)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 22px rgba(79,70,229,.30)';
-            }}
+            className="
+              h-12 min-w-[180px] px-7 rounded-xl
+              bg-gradient-to-r from-indigo-600 to-violet-700
+              text-white text-base font-semibold tracking-tight
+              shadow-md hover:shadow-lg
+              transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105
+              focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2
+            "
           >
             Cronograma
           </button>
         </div>
 
+
       </div>
 
-      {/* Progreso del proyecto */}
       <div className="rounded bg-white p-4 shadow">
         <div className="mb-1 flex justify-between text-sm">
           <span>Progreso del proyecto</span>
@@ -311,7 +280,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Fases */}
+
       {phases.map(phase => {
         const phaseResp = nameCache.get(phase.responsibleId || '') || 'Sin asignar';
         return (
@@ -325,7 +294,7 @@ export default function ProjectDetailPage() {
             </div>
             <p className="text-sm text-gray-500">Responsable: {phaseResp}</p>
 
-            {/* Tareas */}
+
             {phase.tasks.map(task => {
               const tRespUid = task.assignedTo || '';
               const tResp = nameCache.get(tRespUid) || 'Sin asignar';
@@ -343,7 +312,7 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{task.progress}%</span>
 
-                      {/* PM puede editar y añadir subtarea */}
+
                       {role === 'project_manager' && (
                         <>
                           <button
@@ -371,7 +340,7 @@ export default function ProjectDetailPage() {
                         </>
                       )}
 
-                      {/* Admin y Tech solo pueden añadir subtarea */}
+
                       {(role === 'admin' || role === 'technician') && (
                         <button
                           onClick={() => {
@@ -388,7 +357,7 @@ export default function ProjectDetailPage() {
 
                   <p className="text-sm text-gray-500">Responsable: {tResp}</p>
 
-                  {/* Subtareas */}
+
                   <div className="space-y-1">
                     {task.subtasks.length === 0 && (
                       <div className="ml-4 text-xs text-slate-400">Sin subtareas</div>
@@ -421,7 +390,7 @@ export default function ProjectDetailPage() {
                             <span className="rounded bg-slate-100 px-2 py-0.5">
                               {statusLabelEs(st.status)}
                             </span>
-                            {/* Acciones sobre subtareas solo si PM */}
+
                             {role === 'project_manager' && (
                               <>
                                 <button
@@ -462,7 +431,7 @@ export default function ProjectDetailPage() {
         );
       })}
 
-      {/* Modal Crear Tarea solo PM */}
+
       {role === 'project_manager' && (
         <CreateTaskModal
           open={showCreate}
@@ -473,7 +442,7 @@ export default function ProjectDetailPage() {
         />
       )}
 
-      {/* Modal Subtarea (crear/editar) */}
+
       {canAddSubtask && openSubtask && ctx && (
         <SubtaskModal
           open={openSubtask}

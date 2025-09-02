@@ -46,7 +46,7 @@ export default function AlertsBell({ scope, projectId, uid, role }: Props) {
         open={open}
         onClose={() => setOpen(false)}
         alerts={alerts}
-        onChanged={() => setRefreshKey(k => k + 1)}  // 👈 refresca hook tras ack/snooze
+        onChanged={() => setRefreshKey(k => k + 1)}  
       />
     </>
   );

@@ -7,7 +7,6 @@ export default function AboutPage() {
 
   return (
     <main className="bg-gray-50 text-slate-800">
-      {/* Hero */}
       <section className="container mx-auto px-6 py-16 text-center">
         <h1 className="text-4xl font-extrabold mb-4">Acerca de MediFlow</h1>
         <p className="max-w-3xl mx-auto text-lg text-slate-600">
@@ -16,7 +15,6 @@ export default function AboutPage() {
         </p>
       </section>
 
-      {/* Qué somos */}
       <section className="container mx-auto px-6 py-10 grid md:grid-cols-2 gap-10 items-center">
         <div>
           <h2 className="text-2xl font-bold mb-3">Nuestra misión</h2>
@@ -42,7 +40,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Capturas / módulos */}
       <section className="bg-white py-16">
         <div className="container mx-auto px-6">
           <h2 className="text-2xl font-bold text-center mb-10">Módulos principales</h2>
@@ -64,14 +61,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA Final (gradiente azul → turquesa) */}
       <section className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">
           ¿Listo para empezar?
         </h2>
         <p className="mb-8 text-lg/7 opacity-90">Crea tu cuenta o accede para organizar tus proyectos hoy mismo.</p>
 
-        {/* Botón claro sobre fondo intenso */}
         <button
           onClick={() => router.push("/login")}
           className="

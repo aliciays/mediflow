@@ -93,7 +93,7 @@ export default function SubtaskModal({
         status,
         assignedTo: assignee || null,
         dueDate: dueDate ? new Date(dueDate) : null,
-        tags: selectedTags,                          // ← guardamos tags
+        tags: selectedTags,                          
         updatedAt: serverTimestamp(),
       };
 
@@ -153,7 +153,6 @@ export default function SubtaskModal({
             </div>
           </div>
 
-          {/* Competencias requeridas (tags) */}
           <div>
             <label className="mb-1 block text-sm text-slate-600">Competencias requeridas</label>
             <div className="flex flex-wrap gap-2">

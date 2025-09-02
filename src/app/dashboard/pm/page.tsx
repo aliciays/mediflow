@@ -47,7 +47,7 @@ export default function PMDashboard() {
         const phasesSnap = await getDocs(collection(db, `projects/${docSnap.id}/phases`));
 
         if (!phasesSnap.empty) {
-          // Buscar fase en progreso o primera
+ 
           const activePhase = phasesSnap.docs.find(p => p.data().status === 'in_progress');
           if (activePhase) {
             phaseName = activePhase.data().name;
@@ -55,7 +55,7 @@ export default function PMDashboard() {
             phaseName = phasesSnap.docs[0].data().name;
           }
 
-          // Contar tareas de todas las fases
+
           for (const phaseDoc of phasesSnap.docs) {
             const tasksSnap = await getDocs(collection(db, `projects/${docSnap.id}/phases/${phaseDoc.id}/tasks`));
             tasksSnap.forEach(taskDoc => {
@@ -109,7 +109,7 @@ export default function PMDashboard() {
   return (
     <RequireRole allowed={['admin', 'project_manager']}>
       <div className="p-6 space-y-8">
-        {/* RESUMEN */}
+
         <h1 className="text-2xl font-bold mb-4">Resumen</h1>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[`${projects.length} PROYECTOS ACTIVOS`,
@@ -126,7 +126,7 @@ export default function PMDashboard() {
           ))}
         </div>
 
-        {/* PROYECTOS ACTIVOS */}
+
         <h2 className="text-xl font-bold">Proyectos Activos</h2>
         <div className="space-y-4">
           {projects.map((p) => (
@@ -139,7 +139,7 @@ export default function PMDashboard() {
                 <span className="text-slate-700">{p.progress}%</span>
               </div>
 
-              {/* Progreso */}
+
               <div className="h-2 bg-slate-200 rounded-full mt-2 mb-3 overflow-hidden">
                 <div
                   className="h-full bg-blue-600 rounded-full transition-all duration-300"
@@ -169,9 +169,9 @@ export default function PMDashboard() {
           ))}
         </div>
 
-        {/* BOTONES */}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          {/* Crear proyecto (éxito sobrio) */}
+
           <button
             onClick={() => router.push('/dashboard/pm/new')}
             className="h-12 w-full rounded-xl bg-green-600 text-white font-semibold
@@ -182,7 +182,6 @@ export default function PMDashboard() {
             Crear proyecto
           </button>
 
-          {/* Generar reporte (secundario serio) */}
           <button
             onClick={() => router.push('/reports')}
             className="h-12 w-full rounded-xl bg-white text-slate-800 font-semibold
@@ -194,7 +193,6 @@ export default function PMDashboard() {
             Generar reporte
           </button>
 
-          {/* Analytics (primario alterno en azul) */}
           <button
             onClick={() => router.push('/analytics')}
             className="h-12 w-full rounded-xl bg-blue-600 text-white font-semibold
